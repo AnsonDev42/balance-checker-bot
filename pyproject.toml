@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "balancechecker"
+version = "0.1.0"
+description = ""
+authors = ["Anson <tmmanson77@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+python-telegram-bot = {extras = ["job-queue"], version = "^20.7"}
+python-dotenv = "^1.0.0"
+sqlalchemy = "^2.0.25"
+psycopg2 = "^2.9.9"
+pydantic = "^2.5.3"
+requests = "^2.31.0"
+pre-commit = "^3.6.0"
+
+
+[tool.poetry.group.dev.dependencies]
+commitizen = "^3.13.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
