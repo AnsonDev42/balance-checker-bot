@@ -1,0 +1,30 @@
+# Use postgres/example user/password credentials
+version: '3.1'
+
+#services:
+#
+#  db:
+#    image: postgres
+#    restart: always
+#    environment:
+#      POSTGRES_USER: example
+#      POSTGRES_PASSWORD: example
+#
+#
+#  adminer:
+#    image: adminer
+#    restart: always
+#    ports:
+#      - 8080:8080
+services:
+  cache:
+    image: redis:alpine
+    restart: always
+    ports:
+      - '6379:6379'
+    command: redis-server --save 20 1 --loglevel warning --requirepass eYVX7EwVsomepasswordmxKPCDmwMtyKVge8oLd2t81
+    volumes:
+      - cache:/data
+volumes:
+  cache:
+    driver: local
