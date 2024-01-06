@@ -93,7 +93,7 @@ async def demo(request: Request):
     request.session["oauth_state"] = state
     # add state to redis
     try:
-        r.set("state", state)
+        await r.set("state", state)
     except Exception as e:
         print(e)
     print("step 1: redirect to monzo: ", auth_url)
@@ -158,16 +158,53 @@ async def ping(request: Request):
     return "nothing pong"
 
 
-@app.get("/balance")
-async def get_balance(request: Request):
-    user_id = None
-    if "USER_ID" in config:
-        user_id = config.get("USER_ID")
-    if user_id is None:
-        user_id = r.get("USER_ID")
-    if user_id is None:
-        raise HTTPException(status_code=401, detail="no user id provided")
+@app.get("/whoami")
+async def whoami(request: Request):
+    secret = request.query_params.get("secret")
+    if secret != config.get("SECRET_DEV"):
+        raise HTTPException(status_code=401, detail="You are a bad guy!")
+    access_token = r.get("access_token")
+    if not access_token:
+        raise HTTPException(status_code=401, detail="No access token found")
+    logger.debug("access token: ", access_token)
+    WHOAMI_URL = "https://api.monzo.com/ping/whoami"
+    headers = {"Authorization": f"Bearer {access_token}"}
+    try:
+        response = requests.get(WHOAMI_URL, data={}, headers=headers)
+        logger.info("Authentication - tokens received")
+        response.raise_for_status()
+        logger.debug("whoami response: ", response.json())
+        if (
+            "authenticated" in response.json()
+            and str(response.json()["authenticated"]) == "True"
+        ):
+            logger.info("Authentication - user authenticated by Monzo")
+            return "You are authenticated"
+        else:
+            raise HTTPException(
+                status_code=401, detail="You are not authenticated by Monzo!"
+            )
+    except requests.RequestException as e:
+        raise HTTPException(
+            status_code=400, detail="Something wrong with the request for whoami"
+        ) from e
 
+    #
+    # @app.get("/balance")
+    # async def get_balance(request: Request):
+    #     user_id = None
+    #     if "USER_ID" in config:
+    #         user_id = config.get("USER_ID")
+    #     if user_id is None:
+    #         user_id = r.get("USER_ID")
+    #     if user_id is None:
+    #         raise HTTPException(status_code=401, detail="no user id provided")
+    #     access_token = r.get("access_token")
+    #
+    #     if not access_token:
+    #         raise HTTPException(status_code=401, detail="No access token found")
+    #     BALANCE_URL = "https://api.monzo.com/balance"
+    #      = {"account_id": ACCOUNT_ID}
     # if "oauth_token" not in request.session:
     #     raise HTTPException(status_code=401, detail="Not authenticated")
     #
@@ -198,7 +235,7 @@ if __name__ == "__main__":
         port=8000,
         log_config="log_conf.yaml",
         # reload=True,
-        ssl_certfile="cert.pem",
-        ssl_keyfile="key.pem",
+        ssl_certfile=config.get("SSL_CERTFILE"),
+        ssl_keyfile=config.get("SSL_KEYFILE"),
         proxy_headers=True,
     )
