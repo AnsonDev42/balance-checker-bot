@@ -30,7 +30,11 @@ psw = config.get("REDIS_PASSWORD")
 r = redis.Redis(host="localhost", port=6379, decode_responses=True, password=psw)
 
 
-#
+def is_bad_guy(secret):
+    if secret != config.get("SECRET_DEV"):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+
 @app.get("/refresh")
 async def refresh_token(request: Request):
     refresh_token = None
@@ -160,9 +164,7 @@ async def ping(request: Request):
 
 @app.get("/whoami")
 async def whoami(request: Request):
-    secret = request.query_params.get("secret")
-    if secret != config.get("SECRET_DEV"):
-        raise HTTPException(status_code=401, detail="You are a bad guy!")
+    is_bad_guy(request.query_params.get("secret"))
     access_token = r.get("access_token")
     if not access_token:
         raise HTTPException(status_code=401, detail="No access token found")
