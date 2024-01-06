@@ -1,3 +1,8 @@
+# ignore secrets.  just to be safe :)
+*.pem
+
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
