@@ -175,7 +175,7 @@ async def whoami(request: Request):
         response = requests.get(WHOAMI_URL, data={}, headers=headers)
         logger.info("Authentication - tokens received")
         response.raise_for_status()
-        logger.debug("whoami response: ", response.json())
+        logger.debug(f"whoami response: {response.json()}")
         if (
             "authenticated" in response.json()
             and str(response.json()["authenticated"]) == "True"
