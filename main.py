@@ -1,5 +1,4 @@
 import os
-
 import redis
 import requests
 from fastapi import FastAPI, Request
@@ -9,6 +8,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from fastapi import HTTPException
 from dotenv import dotenv_values
 import logging
+import uvicorn
 
 logger = logging.getLogger(__name__)
 config = dotenv_values(".env")
@@ -27,7 +27,8 @@ redirect_uri = config.get("REDIRECT_URI")
 auth_url = "https://auth.monzo.com/"
 scopes = ["accounts"]  # Adjust the scopes according to your needs
 psw = config.get("REDIS_PASSWORD")
-r = redis.Redis(host="localhost", port=6379, decode_responses=True, password=psw)
+REDIS_HOST = config.get("REDIS_HOST")
+r = redis.Redis(host=REDIS_HOST, port=6379, decode_responses=True, password=psw)
 
 
 def is_bad_guy(secret):
@@ -165,10 +166,7 @@ async def ping(request: Request):
 @app.get("/whoami")
 async def whoami(request: Request):
     is_bad_guy(request.query_params.get("secret"))
-    access_token = r.get("access_token")
-    if not access_token:
-        raise HTTPException(status_code=401, detail="No access token found")
-    logger.debug("access token: ", access_token)
+    access_token = load_access_token()
     WHOAMI_URL = "https://api.monzo.com/ping/whoami"
     headers = {"Authorization": f"Bearer {access_token}"}
     try:
@@ -181,6 +179,7 @@ async def whoami(request: Request):
             and str(response.json()["authenticated"]) == "True"
         ):
             logger.info("Authentication - user authenticated by Monzo")
+
             return "You are authenticated"
         else:
             raise HTTPException(
@@ -191,25 +190,34 @@ async def whoami(request: Request):
             status_code=400, detail="Something wrong with the request for whoami"
         ) from e
 
-    #
-    # @app.get("/balance")
-    # async def get_balance(request: Request):
-    #     user_id = None
-    #     if "USER_ID" in config:
-    #         user_id = config.get("USER_ID")
-    #     if user_id is None:
-    #         user_id = r.get("USER_ID")
-    #     if user_id is None:
-    #         raise HTTPException(status_code=401, detail="no user id provided")
-    #     access_token = r.get("access_token")
-    #
-    #     if not access_token:
-    #         raise HTTPException(status_code=401, detail="No access token found")
-    #     BALANCE_URL = "https://api.monzo.com/balance"
-    #      = {"account_id": ACCOUNT_ID}
+
+def load_user_id():
+    user_id = None
+    if "USER_ID" in config:
+        user_id = config.get("USER_ID")
+    if user_id is None:
+        user_id = r.get("USER_ID")
+    if user_id is None:
+        raise HTTPException(status_code=401, detail="no user id provided")
+    return user_id
+
+
+def load_access_token():
+    access_token = r.get("access_token")
+    if not access_token:
+        raise HTTPException(status_code=401, detail="No access token found")
+    logger.debug("access token: ", access_token)
+    return access_token
+
+
+@app.get("/balance")
+async def get_balance(request: Request):
+    is_bad_guy(request.query_params.get("secret"))
+    # user_id = load_user_id()
+    # BALANCE_URL = "https://api.monzo.com/balance"
     # if "oauth_token" not in request.session:
     #     raise HTTPException(status_code=401, detail="Not authenticated")
-    #
+
     # # access_token = request.session["oauth_token"]["access_token"]
     # http "https://api.monzo.com/accounts" \
     #      "Authorization: Bearer $access_token"
@@ -229,10 +237,9 @@ async def whoami(request: Request):
 
 
 if __name__ == "__main__":
-    import uvicorn
-
     uvicorn.run(
         app,
+        # "main:app",
         host="0.0.0.0",
         port=8000,
         log_config="log_conf.yaml",
