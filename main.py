@@ -206,33 +206,71 @@ def load_access_token():
     access_token = r.get("access_token")
     if not access_token:
         raise HTTPException(status_code=401, detail="No access token found")
-    logger.debug("access token: ", access_token)
+    logger.debug(f"access token:{str(access_token)}")
     return access_token
+
+
+@app.get("/accounts")
+async def get_accounts(request: Request):
+    is_bad_guy(request.query_params.get("secret"))
+    access_token = load_access_token()
+    ACCOUNTS_URL = "https://api.monzo.com/accounts"
+    data = {}
+    headers = {"Authorization": f"Bearer {access_token}"}
+    logger.debug(f"account request headers: {headers}")
+    try:
+        response = requests.get(ACCOUNTS_URL, data=data, headers=headers)
+        logger.info("Authentication - tokens received")
+        response.raise_for_status()
+        logger.debug(f"accounts response: {response.json()}")
+    except requests.RequestException as e:
+        raise HTTPException(
+            status_code=400, detail="Something wrong with the request for accounts"
+        ) from e
+    res = response.json()
+    logger.debug(f"raw account json: {res}")
+    account_list = []
+    for account_item in res["accounts"]:
+        account = {
+            "account_id": account_item["id"],
+            "description": account_item["description"],
+            "created": account_item["created"],
+            "closed": account_item["closed"],
+        }
+        account_list.append(account)
+
+    logger.debug(f"account list: {account_list}")
+    account_id = account_list[0]["account_id"]
+    logger.debug(f"account id: {account_id}")
+    r.set("account_id", account_id)
+    return "account id is saved"
 
 
 @app.get("/balance")
 async def get_balance(request: Request):
     is_bad_guy(request.query_params.get("secret"))
-    # user_id = load_user_id()
-    # BALANCE_URL = "https://api.monzo.com/balance"
-    # if "oauth_token" not in request.session:
-    #     raise HTTPException(status_code=401, detail="Not authenticated")
+    account_id = r.get("account_id")
+    logger.debug(f"balance: account id: {account_id}")
+    access_token = load_access_token()
+    headers = {"Authorization": f"Bearer {access_token}"}
+    params = {"account_id": account_id}
+    try:
+        response = requests.get(
+            "https://api.monzo.com/balance",
+            params=params,
+            headers=headers,
+        )
+        logger.info("Balance request - got response")
+        response.raise_for_status()
+        logger.debug(f"accounts response: {response.json()}")
+    except requests.RequestException as e:
+        raise HTTPException(
+            status_code=400, detail="Something wrong with the request for accounts"
+        ) from e
 
-    # # access_token = request.session["oauth_token"]["access_token"]
-    # http "https://api.monzo.com/accounts" \
-    #      "Authorization: Bearer $access_token"
-    # accounts_response = requests.get(
-    #     "https://api.monzo.com/accounts",
-    #     headers={"Authorization": f"Bearer {access_token}"},
-    # ).json()
-    # #
-    # account_id = accounts_response["accounts"][0]["id"]
-    # balance_response = requests.get(
-    #     "https://api.monzo.com/balance",
-    #     headers={"Authorization": f"Bearer {access_token}"},
-    #     params={"account_id": account_id},
-    # ).json()
-    balance = 100
+    balance = response.json()["balance"]
+    balance = balance / 100
+    logger.debug(f"balance: {balance}")
     return balance
 
 
