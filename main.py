@@ -6,26 +6,25 @@ from fastapi.responses import RedirectResponse
 from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from fastapi import HTTPException
-from dotenv import dotenv_values
 import logging
 import uvicorn
+from config import Settings
+from functools import lru_cache
+
 
 logger = logging.getLogger(__name__)
-config = dotenv_values(".env")
-USER_ID = config.get("USER_ID")
-ACCESS_TOKEN = config.get("ACCESS_TOKEN")
-ACCOUNT_ID = config.get("ACCOUNT_ID")
-CLIENT_ID = config.get("CLIENT_ID")
-CLIENT_SECRET = config.get("CLIENT_SECRET")
-REDIRECT_URI = config.get("REDIRECT_URI")
-MONZO_TOKEN_URL = "https://api.monzo.com/oauth2/token"
-WHOAMI_URL = "https://api.monzo.com/ping/whoami"
-ACCOUNTS_URL = "https://api.monzo.com/accounts"
-BALANCE_URL = "https://api.monzo.com/balance"
-REDIS_PASSWORD = config.get("REDIS_PASSWORD")
-REDIS_HOST = config.get("REDIS_HOST")
+
 
 app = FastAPI()
+
+
+@lru_cache
+def get_settings():
+    return Settings()
+
+
+settings = get_settings()
+
 
 # Session Middleware
 app.add_middleware(SessionMiddleware, secret_key=os.urandom(50))
@@ -33,12 +32,15 @@ app.add_middleware(HTTPSRedirectMiddleware)
 
 scopes = ["accounts"]  # Adjust the scopes according to your needs
 r = redis.Redis(
-    host=REDIS_HOST, port=6379, decode_responses=True, password=REDIS_PASSWORD
+    host=settings.REDIS_HOST,
+    port=6379,
+    decode_responses=True,
+    password=settings.REDIS_PASSWORD,
 )
 
 
 def block_bad_guy(secret):
-    if secret == config.get("SECRET_DEV"):
+    if secret == settings.SECRET_DEV:
         return
     raise HTTPException(status_code=401, detail="Unauthorized")
 
@@ -63,13 +65,13 @@ async def refresh_token(request: Request):
 
     data = {
         "grant_type": "refresh_token",
-        "client_id": CLIENT_ID,
-        "client_secret": CLIENT_SECRET,
+        "client_id": settings.CLIENT_ID,
+        "client_secret": settings.CLIENT_SECRET,
         "refresh_token": refresh_token,
     }
 
     try:
-        response = requests.post(MONZO_TOKEN_URL, data=data, headers={})
+        response = requests.post(settings.MONZO_TOKEN_URL, data=data, headers={})
         tokens = response.json()
 
         logger.info("Authentication - tokens received")
@@ -100,7 +102,9 @@ async def refresh_token(request: Request):
 async def demo(request: Request):
     from auth import auth1
 
-    auth_url, state = auth1(REDIRECT_URI, CLIENT_ID, CLIENT_SECRET)
+    auth_url, state = auth1(
+        settings.REDIRECT_URI, settings.CLIENT_ID, settings.CLIENT_SECRET
+    )
 
     request.session["oauth_state"] = state
     # add state to redis
@@ -137,13 +141,13 @@ async def trade(request: Request):
     logger.info("Authentication - swapping authorization token for an access token")
     data = {
         "grant_type": "authorization_code",
-        "client_id": CLIENT_ID,
-        "client_secret": CLIENT_SECRET,
-        "redirect_uri": REDIRECT_URI,
+        "client_id": settings.CLIENT_ID,
+        "client_secret": settings.CLIENT_SECRET,
+        "redirect_uri": settings.REDIRECT_URI,
         "code": r.get("code"),
     }
     try:
-        response = requests.post(MONZO_TOKEN_URL, data=data, headers={})
+        response = requests.post(settings.MONZO_TOKEN_URL, data=data, headers={})
         response.raise_for_status()
         tokens = str(response.json())
         logger.info("Authentication - tokens received")
@@ -173,7 +177,7 @@ async def whoami(request: Request):
     access_token = load_access_token()
     headers = {"Authorization": f"Bearer {access_token}"}
     try:
-        response = requests.get(WHOAMI_URL, data={}, headers=headers)
+        response = requests.get(settings.WHOAMI_URL, data={}, headers=headers)
         logger.info("Authentication - tokens received")
         response.raise_for_status()
         logger.debug(f"whoami response: {response.json()}")
@@ -195,11 +199,9 @@ async def whoami(request: Request):
 
 
 def load_user_id():
-    if "USER_ID" in config:
-        user_id = config.get("USER_ID")
+    if (user_id := settings.USER_ID) is not None:
         return user_id
-    user_id = r.get("USER_ID")
-    if user_id is not None:
+    if (user_id := r.get("USER_ID")) is not None:
         return user_id
     raise HTTPException(status_code=401, detail="no user id provided")
 
@@ -220,7 +222,7 @@ async def get_accounts(request: Request):
     headers = {"Authorization": f"Bearer {access_token}"}
     logger.debug(f"account request headers: {headers}")
     try:
-        response = requests.get(ACCOUNTS_URL, data=data, headers=headers)
+        response = requests.get(settings.ACCOUNTS_URL, data=data, headers=headers)
         logger.info("Authentication - tokens received")
         response.raise_for_status()
         logger.debug(f"accounts response: {response.json()}")
@@ -257,7 +259,7 @@ async def get_balance(request: Request):
     params = {"account_id": account_id}
     try:
         response = requests.get(
-            BALANCE_URL,
+            settings.BALANCE_URL,
             params=params,
             headers=headers,
         )
@@ -283,7 +285,7 @@ if __name__ == "__main__":
         port=8000,
         log_config="log_conf.yaml",
         # reload=True,
-        ssl_certfile=config.get("SSL_CERTFILE"),
-        ssl_keyfile=config.get("SSL_KEYFILE"),
+        ssl_certfile=settings.SSL_CERTFILE,
+        ssl_keyfile=settings.SSL_KEYFILE,
         proxy_headers=True,
     )
