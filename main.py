@@ -15,24 +15,26 @@ config = dotenv_values(".env")
 USER_ID = config.get("USER_ID")
 ACCESS_TOKEN = config.get("ACCESS_TOKEN")
 ACCOUNT_ID = config.get("ACCOUNT_ID")
-client_id = config.get("CLIENT_ID")
+CLIENT_ID = config.get("CLIENT_ID")
 CLIENT_SECRET = config.get("CLIENT_SECRET")
-app = FastAPI()
+REDIRECT_URI = config.get("REDIRECT_URI")
 MONZO_TOKEN_URL = "https://api.monzo.com/oauth2/token"
 WHOAMI_URL = "https://api.monzo.com/ping/whoami"
 ACCOUNTS_URL = "https://api.monzo.com/accounts"
 BALANCE_URL = "https://api.monzo.com/balance"
+REDIS_PASSWORD = config.get("REDIS_PASSWORD")
+REDIS_HOST = config.get("REDIS_HOST")
 
+app = FastAPI()
 
 # Session Middleware
 app.add_middleware(SessionMiddleware, secret_key=os.urandom(50))
 app.add_middleware(HTTPSRedirectMiddleware)
 
-redirect_uri = config.get("REDIRECT_URI")
 scopes = ["accounts"]  # Adjust the scopes according to your needs
-psw = config.get("REDIS_PASSWORD")
-REDIS_HOST = config.get("REDIS_HOST")
-r = redis.Redis(host=REDIS_HOST, port=6379, decode_responses=True, password=psw)
+r = redis.Redis(
+    host=REDIS_HOST, port=6379, decode_responses=True, password=REDIS_PASSWORD
+)
 
 
 def block_bad_guy(secret):
@@ -61,7 +63,7 @@ async def refresh_token(request: Request):
 
     data = {
         "grant_type": "refresh_token",
-        "client_id": client_id,
+        "client_id": CLIENT_ID,
         "client_secret": CLIENT_SECRET,
         "refresh_token": refresh_token,
     }
@@ -98,7 +100,7 @@ async def refresh_token(request: Request):
 async def demo(request: Request):
     from auth import auth1
 
-    auth_url, state = auth1(redirect_uri, client_id, CLIENT_SECRET)
+    auth_url, state = auth1(REDIRECT_URI, CLIENT_ID, CLIENT_SECRET)
 
     request.session["oauth_state"] = state
     # add state to redis
@@ -138,9 +140,9 @@ async def trade(request: Request):
     logger.info("Authentication - swapping authorization token for an access token")
     data = {
         "grant_type": "authorization_code",
-        "client_id": client_id,
+        "client_id": CLIENT_ID,
         "client_secret": CLIENT_SECRET,
-        "redirect_uri": config.get("REDIRECT_URI"),
+        "redirect_uri": REDIRECT_URI,
         "code": r.get("code"),
     }
     try:
