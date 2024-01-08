@@ -31,9 +31,10 @@ REDIS_HOST = config.get("REDIS_HOST")
 r = redis.Redis(host=REDIS_HOST, port=6379, decode_responses=True, password=psw)
 
 
-def is_bad_guy(secret):
-    if secret != config.get("SECRET_DEV"):
-        raise HTTPException(status_code=401, detail="Unauthorized")
+def block_bad_guy(secret):
+    if secret == config.get("SECRET_DEV"):
+        return
+    raise HTTPException(status_code=401, detail="Unauthorized")
 
 
 @app.get("/refresh")
@@ -165,7 +166,7 @@ async def ping(request: Request):
 
 @app.get("/whoami")
 async def whoami(request: Request):
-    is_bad_guy(request.query_params.get("secret"))
+    block_bad_guy(request.query_params.get("secret"))
     access_token = load_access_token()
     WHOAMI_URL = "https://api.monzo.com/ping/whoami"
     headers = {"Authorization": f"Bearer {access_token}"}
@@ -192,27 +193,26 @@ async def whoami(request: Request):
 
 
 def load_user_id():
-    user_id = None
     if "USER_ID" in config:
         user_id = config.get("USER_ID")
-    if user_id is None:
-        user_id = r.get("USER_ID")
-    if user_id is None:
-        raise HTTPException(status_code=401, detail="no user id provided")
-    return user_id
+        return user_id
+    user_id = r.get("USER_ID")
+    if user_id is not None:
+        return user_id
+    raise HTTPException(status_code=401, detail="no user id provided")
 
 
 def load_access_token():
     access_token = r.get("access_token")
-    if not access_token:
-        raise HTTPException(status_code=401, detail="No access token found")
-    logger.debug(f"access token:{str(access_token)}")
-    return access_token
+    if access_token:
+        logger.debug(f"access token:{str(access_token)}")
+        return access_token
+    raise HTTPException(status_code=401, detail="No access token found")
 
 
 @app.get("/accounts")
 async def get_accounts(request: Request):
-    is_bad_guy(request.query_params.get("secret"))
+    block_bad_guy(request.query_params.get("secret"))
     access_token = load_access_token()
     ACCOUNTS_URL = "https://api.monzo.com/accounts"
     data = {}
@@ -248,7 +248,7 @@ async def get_accounts(request: Request):
 
 @app.get("/balance")
 async def get_balance(request: Request):
-    is_bad_guy(request.query_params.get("secret"))
+    block_bad_guy(request.query_params.get("secret"))
     account_id = r.get("account_id")
     logger.debug(f"balance: account id: {account_id}")
     access_token = load_access_token()
