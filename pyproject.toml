@@ -20,6 +20,7 @@ itsdangerous = "^2.1.2"
 uvicorn = "^0.25.0"
 aioredis = "2.0.0"
 redis = "^5.0.1"
+pydantic-settings = "^2.1.0"
 
 
 [tool.poetry.group.dev.dependencies]
@@ -36,3 +37,8 @@ major_version_zero = true
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.ruff.lint.isort]
+combine-as-imports = true
+case-sensitive = true
+force-single-line = true
