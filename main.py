@@ -19,12 +19,16 @@ client_id = config.get("CLIENT_ID")
 CLIENT_SECRET = config.get("CLIENT_SECRET")
 app = FastAPI()
 MONZO_TOKEN_URL = "https://api.monzo.com/oauth2/token"
+WHOAMI_URL = "https://api.monzo.com/ping/whoami"
+ACCOUNTS_URL = "https://api.monzo.com/accounts"
+BALANCE_URL = "https://api.monzo.com/balance"
+
+
 # Session Middleware
 app.add_middleware(SessionMiddleware, secret_key=os.urandom(50))
 app.add_middleware(HTTPSRedirectMiddleware)
 
 redirect_uri = config.get("REDIRECT_URI")
-auth_url = "https://auth.monzo.com/"
 scopes = ["accounts"]  # Adjust the scopes according to your needs
 psw = config.get("REDIS_PASSWORD")
 REDIS_HOST = config.get("REDIS_HOST")
@@ -168,7 +172,6 @@ async def ping(request: Request):
 async def whoami(request: Request):
     block_bad_guy(request.query_params.get("secret"))
     access_token = load_access_token()
-    WHOAMI_URL = "https://api.monzo.com/ping/whoami"
     headers = {"Authorization": f"Bearer {access_token}"}
     try:
         response = requests.get(WHOAMI_URL, data={}, headers=headers)
@@ -214,7 +217,6 @@ def load_access_token():
 async def get_accounts(request: Request):
     block_bad_guy(request.query_params.get("secret"))
     access_token = load_access_token()
-    ACCOUNTS_URL = "https://api.monzo.com/accounts"
     data = {}
     headers = {"Authorization": f"Bearer {access_token}"}
     logger.debug(f"account request headers: {headers}")
@@ -256,7 +258,7 @@ async def get_balance(request: Request):
     params = {"account_id": account_id}
     try:
         response = requests.get(
-            "https://api.monzo.com/balance",
+            BALANCE_URL,
             params=params,
             headers=headers,
         )
