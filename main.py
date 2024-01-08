@@ -107,8 +107,8 @@ async def demo(request: Request):
     try:
         await r.set("state", state)
     except Exception as e:
-        print(e)
-    print("step 1: redirect to monzo: ", auth_url)
+        logger.critical(e)
+    logger.info("Authentication - redirecting to Monzo: " + auth_url)
     return RedirectResponse(auth_url)
 
 
@@ -122,14 +122,11 @@ async def callback(request: Request):
     if state is None:
         raise HTTPException(status_code=401, detail="state not available")
 
-    # save code and state to redis
-    print("code: ", code)
-    print("state: ", state)
     try:
         r.set("code", code)
         r.set("state", state)
     except Exception as e:
-        print(e)
+        logger.critical(e)
     logger.info("Authorization successful. Access token stored.")
     return RedirectResponse("/trade")
 
@@ -161,9 +158,9 @@ async def trade(request: Request):
 
 @app.get("/ping")
 async def ping(request: Request):
-    print(r.get("state"))
-    print(r.get("code"))
-    print(r.get("refresh_token"))
+    logger.debug(f"state {r.get("state")}")
+    logger.debug(f"code {r.get("code")}")
+    logger.debug(f"refresh_token {r.get("refresh_token")}")
     refresh_status = request.query_params.get("refresh")
     if refresh_status == "true":
         return "Access token refreshed."
