@@ -174,6 +174,30 @@ async def login_monzo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin(update, context):
         return
     response = requests.get(f"{settings.BASE_URL}/?secret={settings.SECRET_DEV}")
+    try:
+        login_url = response.json()["auth_url"]
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text=f"Please login to monzo, you will be redirected to monzo login page: {login_url}",
+        )
+        return
+    except KeyError:
+        text = "failed to get auth url, please check if the server is running!"
+    finally:
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text=text,
+        )
+
+
+async def get_monzo_account(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # check if the user is the admin
+    if not is_admin(update, context):
+        return
+    u = f"{settings.BASE_URL}/accounts?secret={settings.SECRET_DEV}"
+    logging.info(u)
+    response = requests.get(u)
+    print(response.json())
     if "data" in response.json():
         login_url = response.json()["auth_url"]
         await context.bot.send_message(
