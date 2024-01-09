@@ -12,6 +12,7 @@ import logging
 import uvicorn
 from config import Settings
 from functools import lru_cache
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -236,7 +237,7 @@ def load_access_token():
 @app.get("/accounts")
 async def get_accounts(request: Request):
     block_bad_guy(request.query_params.get("secret"))
-    await refresh_token()
+    await refresh_token(request)
     access_token = load_access_token()
     data = {}
     headers = {"Authorization": f"Bearer {access_token}"}
@@ -272,7 +273,7 @@ async def get_accounts(request: Request):
 @app.get("/balance")
 async def get_balance(request: Request):
     block_bad_guy(request.query_params.get("secret"))
-    await refresh_token()
+    await refresh_token(request)
     account_id = r.get("account_id")
     logger.debug(f"balance: account id: {account_id}")
     access_token = load_access_token()
@@ -304,7 +305,7 @@ if __name__ == "__main__":
         # "main:app",
         host="0.0.0.0",
         port=8000,
-        log_config="log_conf.yaml",
+        log_config=f"{str(Path(__file__).parent)}/log_conf.yaml",
         # reload=True,
         ssl_certfile=settings.SSL_CERTFILE,
         ssl_keyfile=settings.SSL_KEYFILE,
