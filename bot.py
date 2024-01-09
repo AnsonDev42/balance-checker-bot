@@ -225,6 +225,18 @@ async def login_monzo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await get_monzo_account(update, context)
 
 
+async def remove_all_jobs_from_db(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if r.get("admin_user") is None:
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="You have to be the admin user, to unset all reminders",
+        )
+    r.delete(update.message.chat_id)
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id, text="Successfully unset all reminders"
+    )
+
+
 async def get_monzo_account(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # check if the user is the admin
     if not is_admin(update, context):
@@ -270,6 +282,7 @@ if __name__ == "__main__":
     application.add_handler(CommandHandler("get_balance", get_balance))
     application.add_handler(CommandHandler("set", set_timer))
     application.add_handler(CommandHandler("unset", unset))
+    application.add_handler(CommandHandler("unset_all", remove_all_jobs_from_db))
     application.add_handler(MessageHandler(filters.COMMAND, unknown))
 
     application.run_polling()
