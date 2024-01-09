@@ -1,3 +1,4 @@
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -14,6 +15,13 @@ class Settings(BaseSettings):
     SSL_CERTFILE: str
     SSL_KEYFILE: str
     API_TOKEN: str
+    BASE_URL: str
+
+    @field_validator("BASE_URL")
+    def ensure_trailing_slash(cls, v):
+        if v.endswith("/"):
+            raise ValueError("BASE_URL should not end in a slash")
+        return v
 
     # Static configurations can be directly set as class attributes
     MONZO_TOKEN_URL: str = "https://api.monzo.com/oauth2/token"
