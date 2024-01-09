@@ -1,6 +1,7 @@
 import datetime
 import logging
 import pydantic
+import redis
 from telegram import Update
 from telegram.ext import (
     filters,
@@ -9,15 +10,27 @@ from telegram.ext import (
     CommandHandler,
     ContextTypes,
 )
-from dotenv import dotenv_values
 from query_balance import get_balance
 from validator import TimeModel
+from config import Settings
+from functools import lru_cache
 
-config = dotenv_values(".env")
-API_TOKEN = config.get("API_TOKEN")
+
+@lru_cache
+def get_settings():
+    return Settings()
+
+
+settings = get_settings()
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
+)
+r = redis.Redis(
+    host=settings.REDIS_HOST,
+    port=6379,
+    decode_responses=True,
+    password=settings.REDIS_PASSWORD,
 )
 
 
@@ -26,17 +39,22 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         chat_id=update.effective_chat.id,
         text="I'm a bot, please use /getmonzotoken to set monzo token",
     )
+    if (admin := r.get("admin_user")) is None:
+        r.set("admin_user", update.effective_chat.id)
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="You are the first user, you are the admin",
+        )
+    elif admin == update.effective_chat.id:
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="You are the admin",
+        )
 
 
 #
 async def getBalance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(chat_id=update.effective_chat.id, text=get_balance())
-
-
-async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await context.bot.send_message(
-        chat_id=update.effective_chat.id, text=update.message.text
-    )
 
 
 async def unknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -117,19 +135,39 @@ def remove_job_if_exists(name: str, context: ContextTypes.DEFAULT_TYPE) -> bool:
     return True
 
 
+async def reset_owner(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    curr_user = str(update.effective_chat.id)
+    if (admin_id := r.get("admin_user")) is None:
+        r.set("admin_user", curr_user)
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="Reset succeed, you are the admin now!",
+        )
+    elif admin_id == curr_user:
+        r.delete("admin_user")
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="You were the admin, now you are not",
+        )
+    else:
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="You are not the admin, you can't reset the admin",
+        )
+
+
 if __name__ == "__main__":
-    application = ApplicationBuilder().token(API_TOKEN).build()
+    application = ApplicationBuilder().token(settings.API_TOKEN).build()
 
     start_handler = CommandHandler("start", start)
     # goodbye_handler = CommandHandler('goodbye', goodbye)
     get_balance_handler = CommandHandler("getbalance", getBalance)
-    echo_handler = MessageHandler(filters.TEXT & (~filters.COMMAND), echo)
     unknown_handler = MessageHandler(filters.COMMAND, unknown)
     application.add_handler(start_handler)
+    application.add_handler(CommandHandler("reset", reset_owner))
     application.add_handler(get_balance_handler)
     application.add_handler(CommandHandler("set", set_timer))
     application.add_handler(CommandHandler("unset", unset))
-    application.add_handler(echo_handler)
     application.add_handler(unknown_handler)
 
     application.run_polling()
