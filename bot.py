@@ -1,7 +1,10 @@
 import datetime
 import logging
+from functools import lru_cache
+
 import pydantic
 import redis
+import requests
 from telegram import Update
 from telegram.ext import (
     filters,
@@ -10,11 +13,10 @@ from telegram.ext import (
     CommandHandler,
     ContextTypes,
 )
+
+from config import Settings
 from query_balance import get_balance
 from validator import TimeModel
-from config import Settings
-from functools import lru_cache
-import requests
 
 
 @lru_cache
@@ -162,10 +164,6 @@ def is_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if curr_user == r.get("admin_user"):
         return True
     else:
-        context.bot.send_message(
-            chat_id=update.effective_chat.id,
-            text="You are not the admin, you can't reset the admin",
-        )
         return False
 
 
@@ -231,16 +229,13 @@ async def get_monzo_account(update: Update, context: ContextTypes.DEFAULT_TYPE):
 if __name__ == "__main__":
     application = ApplicationBuilder().token(settings.API_TOKEN).build()
 
-    start_handler = CommandHandler("start", start)
-    login_handler = CommandHandler("login", login_monzo)
-    get_balance_handler = CommandHandler("getbalance", getBalance)
-    unknown_handler = MessageHandler(filters.COMMAND, unknown)
-    application.add_handler(start_handler)
-    application.add_handler(login_handler)
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("get_monzo_account", get_monzo_account))
+    application.add_handler(CommandHandler("login", login_monzo))
     application.add_handler(CommandHandler("reset", reset_owner))
     application.add_handler(CommandHandler("getbalance", getBalance))
     application.add_handler(CommandHandler("set", set_timer))
     application.add_handler(CommandHandler("unset", unset))
-    application.add_handler(unknown_handler)
+    application.add_handler(MessageHandler(filters.COMMAND, unknown))
 
     application.run_polling()
