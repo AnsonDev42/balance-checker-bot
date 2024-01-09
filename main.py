@@ -1,4 +1,6 @@
 import os
+import secrets
+
 import redis
 import requests
 from fastapi import FastAPI, Request
@@ -43,6 +45,22 @@ def block_bad_guy(secret):
     if secret == settings.SECRET_DEV:
         return
     raise HTTPException(status_code=401, detail="Unauthorized")
+
+
+def auth1(redirect_url, client_id, client_secret):
+    state_token = secrets.token_urlsafe(64)
+    user_visit_url = (
+        f"https://auth.monzo.com?client_id={client_id}&redirect_uri={redirect_url}&response_type=code"
+        f"&state={state_token}"
+    )
+    logger.info("Authentication - step 1: send user to Monzo: " + user_visit_url)
+    # http://127.0.0.1/monzo?code=somecode&state=somestate
+    # the code would be used in step 2 as part of the callback url from monzo to your server
+    # the state would be used to verify that the request is coming from monzo and not some other source
+    return (
+        user_visit_url,  #
+        state_token,
+    )
 
 
 @app.get("/refresh")
@@ -101,7 +119,6 @@ async def refresh_token(request: Request):
 @app.get("/")
 async def start_oauth(request: Request):
     block_bad_guy(request.query_params.get("secret"))
-    from auth import auth1
 
     auth_url, state = auth1(
         settings.REDIRECT_URI, settings.CLIENT_ID, settings.CLIENT_SECRET
