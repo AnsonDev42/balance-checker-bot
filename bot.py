@@ -41,7 +41,7 @@ r = redis.Redis(
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text="I'm a bot, please use /getmonzotoken to set monzo token",
+        text="Hello! Please use /connect_monzo to authorize this bot to access your monzo account!",
     )
     if (admin := r.get("admin_user")) is None:
         r.set("admin_user", update.effective_chat.id)
@@ -199,7 +199,7 @@ async def login_monzo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             chat_id=update.effective_chat.id,
             text=f"Please login to monzo, you will be redirected to monzo login page: {login_url}",
         )
-        return
+        text = "Successfully authorized! \nTrying to get your monzo account ID... \n      If failed you can use /get_monzo_account to retry!"
     except KeyError:
         text = "failed to get auth url, please check if the server is running!"
     finally:
@@ -207,6 +207,7 @@ async def login_monzo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             chat_id=update.effective_chat.id,
             text=text,
         )
+    await get_monzo_account(update, context)
 
 
 async def get_monzo_account(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -226,20 +227,21 @@ async def get_monzo_account(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logging.error(e)
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
-            text="Error talking to the server! Check if the server and database is running!",
+            text="Failed to get account ID: Error talking to the server! Check if the server and database is running!",
         )
         return
 
     if response.status_code == 200:
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
-            text="Got account id from monzo! Now checking your balance!",
+            text="Got account ID from monzo! \nTrying to check your balance...",
         )
+        await getBalance(update, context)
         return
 
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text="Error in the server! Check server's error!",
+        text="Failed to get your balance: Please retry with /get_balance !",
     )
 
 
@@ -247,7 +249,7 @@ if __name__ == "__main__":
     application = ApplicationBuilder().token(settings.API_TOKEN).build()
 
     application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("login", login_monzo))
+    application.add_handler(CommandHandler("connect_monzo", login_monzo))
     application.add_handler(CommandHandler("get_monzo_account", get_monzo_account))
     application.add_handler(CommandHandler("reset", reset_owner))
     application.add_handler(CommandHandler("get_balance", getBalance))
