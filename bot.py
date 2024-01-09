@@ -172,6 +172,10 @@ def is_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def login_monzo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # check if the user is the admin
     if not is_admin(update, context):
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="You are not the admin, you can't reset the admin",
+        )
         return
     response = requests.get(f"{settings.BASE_URL}/?secret={settings.SECRET_DEV}")
     try:
@@ -193,6 +197,10 @@ async def login_monzo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def get_monzo_account(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # check if the user is the admin
     if not is_admin(update, context):
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="You are not the admin, you can't reset the admin",
+        )
         return
     u = f"{settings.BASE_URL}/accounts?secret={settings.SECRET_DEV}"
     logging.info(u)
