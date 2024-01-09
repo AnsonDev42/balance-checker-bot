@@ -236,6 +236,7 @@ def load_access_token():
 @app.get("/accounts")
 async def get_accounts(request: Request):
     block_bad_guy(request.query_params.get("secret"))
+    await refresh_token()
     access_token = load_access_token()
     data = {}
     headers = {"Authorization": f"Bearer {access_token}"}
@@ -271,6 +272,7 @@ async def get_accounts(request: Request):
 @app.get("/balance")
 async def get_balance(request: Request):
     block_bad_guy(request.query_params.get("secret"))
+    await refresh_token()
     account_id = r.get("account_id")
     logger.debug(f"balance: account id: {account_id}")
     access_token = load_access_token()
