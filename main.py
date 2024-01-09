@@ -131,7 +131,7 @@ async def start_oauth(request: Request):
     except Exception as e:
         logger.critical(e)
     logger.info("Authentication - redirecting to Monzo: " + auth_url)
-    return {"data": auth_url}
+    return {"auth_url": auth_url}
 
 
 @app.get("/oauth/callback")

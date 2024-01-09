@@ -175,7 +175,7 @@ async def login_monzo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     response = requests.get(f"{settings.BASE_URL}/?secret={settings.SECRET_DEV}")
     if "data" in response.json():
-        login_url = response.json()["data"]
+        login_url = response.json()["auth_url"]
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
             text=f"Please login to monzo, you will be redirected to monzo login page: {login_url}",
