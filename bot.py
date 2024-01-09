@@ -14,6 +14,7 @@ from query_balance import get_balance
 from validator import TimeModel
 from config import Settings
 from functools import lru_cache
+import requests
 
 
 @lru_cache
@@ -156,14 +157,46 @@ async def reset_owner(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
 
+def is_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    curr_user = str(update.effective_chat.id)
+    if curr_user == r.get("admin_user"):
+        return True
+    else:
+        context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="You are not the admin, you can't reset the admin",
+        )
+        return False
+
+
+async def login_monzo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # check if the user is the admin
+    if not is_admin(update, context):
+        return
+    response = requests.get(f"{settings.BASE_URL}/?secret={settings.SECRET_DEV}")
+    if "data" in response.json():
+        login_url = response.json()["data"]
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text=f"Please login to monzo, you will be redirected to monzo login page: {login_url}",
+        )
+        return
+
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text="Error talking to the server! Check if the server and database is running!",
+    )
+
+
 if __name__ == "__main__":
     application = ApplicationBuilder().token(settings.API_TOKEN).build()
 
     start_handler = CommandHandler("start", start)
-    # goodbye_handler = CommandHandler('goodbye', goodbye)
+    login_handler = CommandHandler("login", login_monzo)
     get_balance_handler = CommandHandler("getbalance", getBalance)
     unknown_handler = MessageHandler(filters.COMMAND, unknown)
     application.add_handler(start_handler)
+    application.add_handler(login_handler)
     application.add_handler(CommandHandler("reset", reset_owner))
     application.add_handler(get_balance_handler)
     application.add_handler(CommandHandler("set", set_timer))
