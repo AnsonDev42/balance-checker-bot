@@ -5,6 +5,7 @@ from functools import lru_cache
 import pydantic
 import redis
 import requests
+from requests import HTTPError
 from telegram import Update
 from telegram.ext import (
     filters,
@@ -57,7 +58,23 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 #
 async def getBalance(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await context.bot.send_message(chat_id=update.effective_chat.id, text=get_balance())
+    try:
+        response = requests.get(
+            f"{settings.BASE_URL}/balance?secret={settings.SECRET_DEV}"
+        )
+        logging.info(str(response.json()))
+        response.raise_for_status()
+    except HTTPError as e:
+        logging.error(e)
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text=f"Failed to get balance! {e}",
+        )
+        return
+    response = response.json()
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id, text=f"Your balance is: {response}"
+    )
 
 
 async def unknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -230,10 +247,10 @@ if __name__ == "__main__":
     application = ApplicationBuilder().token(settings.API_TOKEN).build()
 
     application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("get_monzo_account", get_monzo_account))
     application.add_handler(CommandHandler("login", login_monzo))
+    application.add_handler(CommandHandler("get_monzo_account", get_monzo_account))
     application.add_handler(CommandHandler("reset", reset_owner))
-    application.add_handler(CommandHandler("getbalance", getBalance))
+    application.add_handler(CommandHandler("get_balance", getBalance))
     application.add_handler(CommandHandler("set", set_timer))
     application.add_handler(CommandHandler("unset", unset))
     application.add_handler(MessageHandler(filters.COMMAND, unknown))
