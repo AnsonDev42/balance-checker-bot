@@ -204,19 +204,27 @@ async def get_monzo_account(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     u = f"{settings.BASE_URL}/accounts?secret={settings.SECRET_DEV}"
     logging.info(u)
-    response = requests.get(u)
-    print(response.json())
-    if "data" in response.json():
-        login_url = response.json()["auth_url"]
+    try:
+        response = requests.get(u)
+        logging.info(str(response.json()))
+    except Exception as e:
+        logging.error(e)
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
-            text=f"Please login to monzo, you will be redirected to monzo login page: {login_url}",
+            text="Error talking to the server! Check if the server and database is running!",
+        )
+        return
+
+    if response.status_code == 200:
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="Got account id from monzo! Now checking your balance!",
         )
         return
 
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text="Error talking to the server! Check if the server and database is running!",
+        text="Error in the server! Check server's error!",
     )
 
 
@@ -230,7 +238,7 @@ if __name__ == "__main__":
     application.add_handler(start_handler)
     application.add_handler(login_handler)
     application.add_handler(CommandHandler("reset", reset_owner))
-    application.add_handler(get_balance_handler)
+    application.add_handler(CommandHandler("getbalance", getBalance))
     application.add_handler(CommandHandler("set", set_timer))
     application.add_handler(CommandHandler("unset", unset))
     application.add_handler(unknown_handler)
