@@ -16,7 +16,6 @@ from telegram.ext import (
 )
 
 from config import Settings
-from query_balance import get_balance
 from validator import TimeModel
 
 
@@ -56,8 +55,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
 
-#
-async def getBalance(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def get_balance_callback(context: ContextTypes):
+    if context is None:
+        return
     try:
         response = requests.get(
             f"{settings.BASE_URL}/balance?secret={settings.SECRET_DEV}"
@@ -67,14 +67,24 @@ async def getBalance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except HTTPError as e:
         logging.error(e)
         await context.bot.send_message(
-            chat_id=update.effective_chat.id,
+            chat_id=r.get("admin_user"),
             text=f"Failed to get balance! {e}",
         )
         return
     response = response.json()
     await context.bot.send_message(
-        chat_id=update.effective_chat.id, text=f"Your balance is: {response}"
+        chat_id=r.get("admin_user"), text=f"Your balance is: {response}"
     )
+
+
+async def get_balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_admin(update, context):
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="You are not the admin, you can't get the balance",
+        )
+        return
+    await get_balance_callback(context)
 
 
 async def unknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -84,54 +94,59 @@ async def unknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
-async def alarm(context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Send the alarm message."""
-    job = context.job
-    balance = get_balance()
-    if balance == "Error":
-        await context.bot.send_message(
-            job.chat_id, text="Error, can't get balance, please check your monzo token!"
-        )
-        return
-    text = f" Balance: {balance} pounds"
-    if balance < 100:
-        text = "Your balance is less than 100 pounds, please top up! " + text
-    else:
-        text = (
-            "Your balance is more than 100 pounds, keep above it for direct debit! "
-            + text
-        )
-    await context.bot.send_message(job.chat_id, text=text)
-
-
 async def set_timer(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Add a job to the queue."""
     chat_id = update.effective_message.chat_id
+    if not is_admin(update, context):
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text="You are not the admin, you can't set the timer",
+        )
+        return
     try:
         # args[0] should contain the time for the timer in seconds
         user_input_time = context.args[0]
         # show check time in the log
         logging.info(f"check_user_input_time: -{user_input_time}-")
         checked_time = TimeModel(time=user_input_time)
-        logging.info(f"reminder timer set: -{checked_time}-")
-        t = datetime.time(hour=checked_time.hour, minute=checked_time.minute)
-        job_removed = remove_job_if_exists(str(chat_id), context)
-        context.job_queue.run_daily(
-            alarm,
-            time=t,
-            chat_id=chat_id,
-            name=str(chat_id),
-        )
-
-        text = f"Your reminder successfully set to everyday {t.strftime('%H:%M')}."
-        if job_removed:
-            text += " Old one was removed."
-        await update.effective_message.reply_text(text)
 
     except pydantic.ValidationError as e:
         err = str(e)
         await update.effective_message.reply_text(
             f"Usage: /set <DDHHMM>, your input error:{err} "
+        )
+
+    logging.info(f"reminder timer set: -{checked_time}-")
+    r.rpush(r.get("admin_user"), user_input_time)
+
+    t = datetime.time(hour=checked_time.hour, minute=checked_time.minute)
+    job_removed = remove_job_if_exists(str(chat_id), context)
+    context.job_queue.run_daily(
+        get_balance_callback, time=t, chat_id=chat_id, name=str(chat_id), data=context
+    )
+
+    text = f"Your reminder successfully set to everyday {t.strftime('%H:%M')}."
+    if job_removed:
+        text += " Old one was removed."
+    await update.effective_message.reply_text(text)
+
+
+def setup_existing_reminders(job_queue):
+    # Retrieve all users' chat_ids
+    chat_id = r.get("admin_user")
+    if chat_id is None:
+        return "No admin user, no reminder set"
+    reminder_times = r.lrange(chat_id, 0, -1)
+    for time_str in reminder_times:
+        hour = int(time_str[2:4])
+        minute = int(time_str[4:6])
+        t = datetime.time(hour=hour, minute=minute)
+
+        job_queue.run_daily(
+            get_balance_callback,
+            time=t,
+            chat_id=chat_id,
+            name=f"{chat_id}_{t}",
         )
 
 
@@ -236,7 +251,7 @@ async def get_monzo_account(update: Update, context: ContextTypes.DEFAULT_TYPE):
             chat_id=update.effective_chat.id,
             text="Got account ID from monzo! \nTrying to check your balance...",
         )
-        await getBalance(update, context)
+        await get_balance(update, context)
         return
 
     await context.bot.send_message(
@@ -247,12 +262,12 @@ async def get_monzo_account(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 if __name__ == "__main__":
     application = ApplicationBuilder().token(settings.API_TOKEN).build()
-
+    setup_existing_reminders(application.job_queue)
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("connect_monzo", login_monzo))
     application.add_handler(CommandHandler("get_monzo_account", get_monzo_account))
     application.add_handler(CommandHandler("reset", reset_owner))
-    application.add_handler(CommandHandler("get_balance", getBalance))
+    application.add_handler(CommandHandler("get_balance", get_balance))
     application.add_handler(CommandHandler("set", set_timer))
     application.add_handler(CommandHandler("unset", unset))
     application.add_handler(MessageHandler(filters.COMMAND, unknown))
