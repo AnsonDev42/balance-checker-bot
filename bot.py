@@ -226,14 +226,19 @@ async def login_monzo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def remove_all_jobs_from_db(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if r.get("admin_user") is None:
-        await context.bot.send_message(
-            chat_id=update.effective_chat.id,
-            text="You have to be the admin user, to unset all reminders",
-        )
-    r.delete(update.message.chat_id)
+    chat_id = update.message.chat_id
+
+    reminder_times = r.lrange(chat_id, 0, -1)
+    for time_str in reminder_times:
+        hour = int(time_str[2:4])
+        minute = int(time_str[4:6])
+        t = datetime.time(hour=hour, minute=minute)
+
+        remove_job_if_exists(f"{chat_id}_{t}", context)
+
+    r.delete(chat_id)
     await context.bot.send_message(
-        chat_id=update.effective_chat.id, text="Successfully unset all reminders"
+        chat_id=chat_id, text="Successfully unset all reminders"
     )
 
 
