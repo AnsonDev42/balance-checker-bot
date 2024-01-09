@@ -13,9 +13,7 @@ import uvicorn
 from config import Settings
 from functools import lru_cache
 
-
 logger = logging.getLogger(__name__)
-
 
 app = FastAPI()
 
@@ -26,7 +24,6 @@ def get_settings():
 
 
 settings = get_settings()
-
 
 # Session Middleware
 app.add_middleware(SessionMiddleware, secret_key=os.urandom(50))
@@ -105,10 +102,13 @@ async def refresh_token(request: Request):
         if "access_token" in response.json():
             access_token = tokens["access_token"]
             r.set("access_token", access_token)
+            # r.set("access_token_expiry",tokens["expires_in"])
+            # TODO: save expiry time instead refresh every time
         else:
             logger.info("Access token not available in response")
         logger.info("Access token and Refresh token both refreshed.")
         request.session["oauth_token"] = tokens["access_token"]
+
         return RedirectResponse(url="/ping?refreshed=true")
     except requests.RequestException as e:
         raise HTTPException(
@@ -192,6 +192,7 @@ async def ping(request: Request):
 @app.get("/whoami")
 async def whoami(request: Request):
     block_bad_guy(request.query_params.get("secret"))
+    await refresh_token()
     access_token = load_access_token()
     headers = {"Authorization": f"Bearer {access_token}"}
     try:
