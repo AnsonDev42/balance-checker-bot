@@ -1,4 +1,4 @@
-from pydantic import field_validator
+from pydantic import field_validator, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pathlib import Path
 
@@ -13,8 +13,8 @@ class Settings(BaseSettings):
     REDIS_PASSWORD: str
     REDIS_HOST: str
     SECRET_DEV: str
-    SSL_CERTFILE: str
-    SSL_KEYFILE: str
+    SSL_CERTFILE: str = Field(..., env="SSL_CERTFILE_OVERRIDE")
+    SSL_KEYFILE: str = Field(..., env="SSL_KEYFILE_OVERRIDE")
     API_TOKEN: str
     BASE_URL: str
 
