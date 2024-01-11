@@ -4,7 +4,6 @@ from pathlib import Path
 
 
 class Settings(BaseSettings):
-    USER_ID: str
     ACCESS_TOKEN: str
     ACCOUNT_ID: str
     CLIENT_ID: str
