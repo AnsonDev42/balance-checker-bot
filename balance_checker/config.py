@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     SECRET_DEV: str
     SSL_CERTFILE: str = "ssl/cert.pem"
     SSL_KEYFILE: str = "ssl/key.pem"
-    API_TOKEN: str
+    TELEGRAM_BOT_API_TOKEN: str
     BASE_URL: str
 
     @field_validator("BASE_URL")

@@ -278,7 +278,7 @@ async def get_monzo_account(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 if __name__ == "__main__":
-    application = ApplicationBuilder().token(settings.API_TOKEN).build()
+    application = ApplicationBuilder().token(settings.TELEGRAM_BOT_API_TOKEN).build()
     setup_existing_reminders(application.job_queue)
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("connect_monzo", login_monzo))
