@@ -307,7 +307,7 @@ if __name__ == "__main__":
         port=8000,
         log_config=f"{str(Path(__file__).parent)}/log_conf.yaml",
         # reload=True,
-        ssl_certfile=settings.SSL_CERTFILE,
-        ssl_keyfile=settings.SSL_KEYFILE,
+        ssl_certfile="./ssl/cert.pem",
+        ssl_keyfile="./ssl/key.pem",
         proxy_headers=True,
     )

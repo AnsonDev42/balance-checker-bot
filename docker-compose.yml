@@ -1,21 +1,5 @@
-# Use postgres/example user/password credentials
 version: '3.1'
 
-#services:
-#
-#  db:
-#    image: postgres
-#    restart: always
-#    environment:
-#      POSTGRES_USER: example
-#      POSTGRES_PASSWORD: example
-#
-#
-#  adminer:
-#    image: adminer
-#    restart: always
-#    ports:
-#      - 8080:8080
 services:
   cache:
     image: redis:alpine
@@ -25,6 +9,19 @@ services:
     command: redis-server --save 20 1 --loglevel warning --requirepass eYVX7EwVsomepasswordmxKPCDmwMtyKVge8oLd2t81
     volumes:
       - cache:/data
+  botsandserver:
+    image: docker.io/library/balance-checker-bot:dev
+    container_name: bc-server
+    volumes:
+      - ./balance_checker/ssl/cert.pem:/src/app/balance_checker/ssl/cert.pem
+      - ./balance_checker/ssl/key.pem:/src/app/balance_checker/ssl/key.pem
+      - ./docker/.env-docker:/src/app/.env
+
+    ports:
+      - 8000:8000
+    #  - "your_host_port:your_container_port"  # Adjust as needed
+    depends_on:
+      - cache
 volumes:
   cache:
     driver: local

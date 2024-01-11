@@ -1,4 +1,4 @@
-from pydantic import field_validator, Field
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pathlib import Path
 
@@ -13,8 +13,8 @@ class Settings(BaseSettings):
     REDIS_PASSWORD: str
     REDIS_HOST: str
     SECRET_DEV: str
-    SSL_CERTFILE: str = Field(..., env="SSL_CERTFILE_OVERRIDE")
-    SSL_KEYFILE: str = Field(..., env="SSL_KEYFILE_OVERRIDE")
+    SSL_CERTFILE: str = "ssl/cert.pem"
+    SSL_KEYFILE: str = "ssl/key.pem"
     API_TOKEN: str
     BASE_URL: str
 
@@ -31,3 +31,7 @@ class Settings(BaseSettings):
     BALANCE_URL: str = "https://api.monzo.com/balance"
 
     model_config = SettingsConfigDict(env_file=Path(__file__).parent.parent / ".env")
+
+
+settings = Settings()
+print(settings.SSL_KEYFILE)

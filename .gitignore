@@ -1,8 +1,7 @@
 # ignore secrets.  just to be safe :)
 *.pem
-
-
-
+docker/.env-docker
+.env
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

@@ -1,22 +1,21 @@
 FROM python:3.12.1-slim
 
 LABEL authors="AnsonDev42"
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends python3-dev libpq-dev gcc\
-    && rm -rf /var/lib/apt/lists/*
+WORKDIR /src/app
+RUN apt-get -y update; apt-get -y install curl
+RUN apt-get install -y --no-install-recommends python3-dev libpq-dev gcc
+COPY requirements.txt requirements.txt
+RUN curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+RUN python get-pip.py
+RUN pip install -r requirements.txt
+RUN pip install supervisor
+COPY docker/supervisord.conf /etc/
+# Make port 8000 available to the world outside this container
+EXPOSE 8000
 
-RUN pip install pipx
-RUN pipx install poetry
+# Run supervisord
 ENV PATH="/root/.local/bin:$PATH"
-
-WORKDIR /app
-COPY pyproject.toml ../poetry.lock* /app/
-
-RUN poetry config virtualenvs.create false \
-    && poetry install --no-interaction --no-ansi
-
-COPY balance_checker ./balance_checker
-WORKDIR /app/balance_checker
-
-CMD ["python", "main.py"]
+COPY balance_checker /src/app/balance_checker
+WORKDIR /src/app/balance_checker
+CMD ["supervisord", "-c", "/etc/supervisord.conf"]
 EXPOSE 8000
