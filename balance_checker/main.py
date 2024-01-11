@@ -218,14 +218,6 @@ async def whoami(request: Request):
         ) from e
 
 
-def load_user_id():
-    if (user_id := settings.USER_ID) is not None:
-        return user_id
-    if (user_id := r.get("USER_ID")) is not None:
-        return user_id
-    raise HTTPException(status_code=401, detail="no user id provided")
-
-
 def load_access_token():
     access_token = r.get("access_token")
     if access_token:
