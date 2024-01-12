@@ -2,7 +2,7 @@
 name = "balancechecker"
 version = "0.2.0"
 description = ""
-authors = ["Anson <tmmanson77@gmail.com>"]
+authors = ["Anson <58594437+AnsonDev42@users.noreply.github.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
