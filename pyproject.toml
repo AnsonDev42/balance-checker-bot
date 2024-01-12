@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "balancechecker"
+name = "balance-checker-bot"
 version = "0.2.0"
 description = ""
 authors = ["Anson <58594437+AnsonDev42@users.noreply.github.com>"]
