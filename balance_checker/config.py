@@ -4,7 +4,6 @@ from pathlib import Path
 
 
 class Settings(BaseSettings):
-    ACCESS_TOKEN: str
     CLIENT_ID: str
     CLIENT_SECRET: str
     REDIRECT_URI: str
