@@ -15,7 +15,7 @@ EXPOSE 8000
 
 # Run supervisord
 ENV PATH="/root/.local/bin:$PATH"
-COPY balance_checker /src/app/balance_checker
-WORKDIR /src/app/balance_checker
+COPY balance_checker_bot /src/app/balance_checker_bot
+WORKDIR /src/app/balance_checker_bot
 CMD ["supervisord", "-c", "/etc/supervisord.conf"]
 EXPOSE 8000

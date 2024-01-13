@@ -13,8 +13,8 @@ services:
     image: docker.io/library/balance-checker-bot:dev
     container_name: bc-server
     volumes:
-      - ./balance_checker/ssl/cert.pem:/src/app/balance_checker/ssl/cert.pem
-      - ./balance_checker/ssl/key.pem:/src/app/balance_checker/ssl/key.pem
+      - ./balance_checker_bot/ssl/cert.pem:/src/app/balance_checker_bot/ssl/cert.pem
+      - ./balance_checker_bot/ssl/key.pem:/src/app/balance_checker_bot/ssl/key.pem
       - .env:/src/app/.env
 
     ports:
