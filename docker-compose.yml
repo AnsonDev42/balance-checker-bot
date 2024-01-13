@@ -15,7 +15,7 @@ services:
     volumes:
       - ./balance_checker/ssl/cert.pem:/src/app/balance_checker/ssl/cert.pem
       - ./balance_checker/ssl/key.pem:/src/app/balance_checker/ssl/key.pem
-      - ./docker/.env-docker:/src/app/.env
+      - .env:/src/app/.env
 
     ports:
       - 8000:8000
