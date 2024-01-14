@@ -293,12 +293,11 @@ async def get_balance(request: Request):
 
 if __name__ == "__main__":
     uvicorn.run(
-        app,
-        # "main:app",
+        "main:app",
         host="0.0.0.0",
         port=8000,
         log_config=f"{str(Path(__file__).parent)}/log_conf.yaml",
-        # reload=True,
+        reload=True,
         ssl_certfile="./ssl/cert.pem",
         ssl_keyfile="./ssl/key.pem",
         proxy_headers=True,
