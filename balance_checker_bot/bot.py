@@ -15,7 +15,7 @@ from telegram.ext import (
     ContextTypes,
 )
 
-from config import Settings
+from balance_checker_bot.config import Settings
 from validator import TimeModel
 
 

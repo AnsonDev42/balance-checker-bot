@@ -1,16 +1,18 @@
 import os
 import secrets
+from typing import Annotated
 
 import redis
 import requests
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Depends, Header
 from fastapi.responses import RedirectResponse
+from starlette import status
 from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from fastapi import HTTPException
 import logging
 import uvicorn
-from config import Settings
+from balance_checker_bot.config import Settings
 from functools import lru_cache
 from pathlib import Path
 
