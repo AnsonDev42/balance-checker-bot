@@ -41,10 +41,24 @@ r = redis.Redis(
 )
 
 
-def block_bad_guy(secret):
-    if secret == settings.SECRET_DEV:
-        return
-    raise HTTPException(status_code=401, detail="Unauthorized")
+async def is_auth_bot(token: Annotated[str, Header()]) -> bool:
+    # check env variable settings
+    if token is None or token == "":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    # prevent timing attacks
+    if not secrets.compare_digest(
+        settings.SECRET_DEV.encode("utf-8"), token.encode("utf-8")
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return True
 
 
 def auth1(redirect_url, client_id, client_secret):
