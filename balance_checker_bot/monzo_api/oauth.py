@@ -2,7 +2,7 @@ import logging
 import requests
 from balance_checker_bot.config import get_settings
 from balance_checker_bot.dependencies.auth_dependencies import is_auth_bot
-from balance_checker_bot.redis_connection import get_redis_client
+from balance_checker_bot.dependencies.redis_connection import get_redis_client
 from fastapi import APIRouter, Request, Depends, HTTPException
 from fastapi.responses import RedirectResponse
 from typing import Annotated
@@ -88,7 +88,7 @@ async def trade(request: Request, token: Annotated[str, Depends(is_auth_bot)]):
 
 
 @oauth_router.get("/refresh")
-async def refresh_tokens_endpoint(request: Request) -> any:
+async def refresh_tokens_endpoint(request: Request):
     results = await perform_token_refresh()
     if results == TokenRefreshResult.SUCCESS:
         return {"success": True}
