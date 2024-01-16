@@ -41,9 +41,9 @@ r = redis.Redis(
 )
 
 
-async def is_auth_bot(token: Annotated[str, Header()]) -> bool:
+async def is_auth_bot(secret: str = Header(None)) -> bool:
     # check env variable settings
-    if token is None or token == "":
+    if not secret or secret == "":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not authenticated",
@@ -51,7 +51,7 @@ async def is_auth_bot(token: Annotated[str, Header()]) -> bool:
         )
     # prevent timing attacks
     if not secrets.compare_digest(
-        settings.SECRET_DEV.encode("utf-8"), token.encode("utf-8")
+        settings.SECRET_DEV.encode("utf-8"), secret.encode("utf-8")
     ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -61,7 +61,7 @@ async def is_auth_bot(token: Annotated[str, Header()]) -> bool:
     return True
 
 
-def auth1(redirect_url, client_id, client_secret):
+def auth1(redirect_url, client_id):
     state_token = secrets.token_urlsafe(64)
     user_visit_url = (
         f"https://auth.monzo.com?client_id={client_id}&redirect_uri={redirect_url}&response_type=code"
@@ -134,12 +134,8 @@ async def refresh_token(request: Request):
 
 
 @app.get("/")
-async def start_oauth(request: Request):
-    block_bad_guy(request.query_params.get("secret"))
-
-    auth_url, state = auth1(
-        settings.REDIRECT_URI, settings.CLIENT_ID, settings.CLIENT_SECRET
-    )
+async def start_oauth(request: Request, token: Annotated[str, Depends(is_auth_bot)]):
+    auth_url, state = auth1(settings.REDIRECT_URI, settings.CLIENT_ID)
 
     request.session["oauth_state"] = state
     # add state to redis
@@ -171,7 +167,7 @@ async def callback(request: Request):
 
 
 @app.get("/trade")
-async def trade(request: Request):
+async def trade(request: Request, token: Annotated[str, Depends(is_auth_bot)]):
     # get code and state from redis
     logger.info("Authentication - swapping authorization token for an access token")
     data = {
@@ -196,19 +192,15 @@ async def trade(request: Request):
 
 
 @app.get("/ping")
-async def ping(request: Request):
-    logger.debug(f"state {r.get("state")}")
-    logger.debug(f"code {r.get("code")}")
-    logger.debug(f"refresh_token {r.get("refresh_token")}")
-    refresh_status = request.query_params.get("refresh")
-    if refresh_status == "true":
-        return "Access token refreshed."
-    return "nothing pong"
+async def ping(
+    is_authenticated: Annotated[str, Depends(is_auth_bot)], refresh: bool | None = False
+):
+    authorised = True if is_authenticated else False
+    return {"ping": "pong", "authorised": authorised, "refreshed": refresh}
 
 
 @app.get("/whoami")
-async def whoami(request: Request):
-    block_bad_guy(request.query_params.get("secret"))
+async def whoami(request: Request, token: Annotated[str, Depends(is_auth_bot)]):
     await refresh_token()
     access_token = load_access_token()
     headers = {"Authorization": f"Bearer {access_token}"}
@@ -243,8 +235,7 @@ def load_access_token():
 
 
 @app.get("/accounts")
-async def get_accounts(request: Request):
-    block_bad_guy(request.query_params.get("secret"))
+async def get_accounts(request: Request, token: Annotated[str, Depends(is_auth_bot)]):
     await refresh_token(request)
     access_token = load_access_token()
     data = {}
@@ -280,7 +271,7 @@ async def get_accounts(request: Request):
 
 @app.get("/balance")
 async def get_balance(request: Request):
-    block_bad_guy(request.query_params.get("secret"))
+    is_auth_bot(request.query_params.get("secret"))
     await refresh_token(request)
     account_id = r.get("account_id")
     logger.debug(f"balance: account id: {account_id}")

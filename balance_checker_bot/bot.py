@@ -60,7 +60,7 @@ async def get_balance_callback(context: ContextTypes):
         return
     try:
         response = requests.get(
-            f"{settings.BASE_URL}/balance?secret={settings.SECRET_DEV}"
+            f"{settings.BASE_URL}/balance", headers={"secret": settings.SECRET_DEV}
         )
         logging.info(str(response.json()))
         response.raise_for_status()
@@ -207,7 +207,7 @@ async def login_monzo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             text="You are not the admin, you can't reset the admin",
         )
         return
-    response = requests.get(f"{settings.BASE_URL}/?secret={settings.SECRET_DEV}")
+    response = requests.get(settings.BASE_URL, headers={"secret": settings.SECRET_DEV})
     try:
         login_url = response.json()["auth_url"]
         await context.bot.send_message(
@@ -250,10 +250,10 @@ async def get_monzo_account(update: Update, context: ContextTypes.DEFAULT_TYPE):
             text="You are not the admin, you can't reset the admin",
         )
         return
-    u = f"{settings.BASE_URL}/accounts?secret={settings.SECRET_DEV}"
-    logging.info(u)
     try:
-        response = requests.get(u)
+        response = requests.get(
+            f"{settings.BASE_URL}/accounts", headers={"secret": settings.SECRET_DEV}
+        )
         logging.info(str(response.json()))
     except Exception as e:
         logging.error(e)
