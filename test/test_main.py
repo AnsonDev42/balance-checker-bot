@@ -2,19 +2,17 @@ import redis
 from fastapi.testclient import TestClient
 
 from balance_checker_bot.main import app
-from balance_checker_bot.config import Settings
+from balance_checker_bot.config import get_settings
+from balance_checker_bot.dependencies.redis_client import RedisClient
 
+settings = get_settings()
 client = TestClient(app)
 
 
 def test_redis_up():
-    settings = Settings()
-    r = redis.Redis(
-        host=settings.REDIS_HOST,
-        port=6379,
-        decode_responses=True,
-        password=settings.REDIS_PASSWORD,
-    )
+    r = RedisClient()
+    assert isinstance(r, redis.Redis)
+
     try:
         r.ping()
     except Exception as e:
