@@ -21,6 +21,7 @@ uvicorn = "^0.25.0"
 aioredis = "2.0.0"
 redis = "^5.0.1"
 pydantic-settings = "^2.1.0"
+pytest = "^7.4.4"
 
 
 [tool.poetry.group.dev.dependencies]
