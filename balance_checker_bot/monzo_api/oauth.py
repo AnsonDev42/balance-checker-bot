@@ -2,7 +2,7 @@ import logging
 import requests
 from balance_checker_bot.config import get_settings
 from balance_checker_bot.dependencies.auth_dependencies import is_auth_bot
-from balance_checker_bot.dependencies.redis_connection import get_redis_client
+from balance_checker_bot.dependencies.redis_client import RedisClient
 from fastapi import APIRouter, Request, Depends, HTTPException
 from fastapi.responses import RedirectResponse
 from typing import Annotated
@@ -12,7 +12,7 @@ import secrets
 oauth_router = APIRouter()
 logger = logging.getLogger(__name__)
 settings = get_settings()
-r = get_redis_client()
+r = RedisClient()
 
 
 class TokenRefreshResult(Enum):

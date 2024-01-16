@@ -3,13 +3,13 @@ import requests
 import logging
 from typing import Annotated
 from balance_checker_bot.dependencies.auth_dependencies import is_auth_bot
-from balance_checker_bot.dependencies.redis_connection import get_redis_client
+from balance_checker_bot.dependencies.redis_client import RedisClient
 from balance_checker_bot.config import get_settings
 from balance_checker_bot.monzo_api.oauth import oauth_router, perform_token_refresh
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
-r = get_redis_client()
+r = RedisClient()
 operations_router = APIRouter()
 
 operations_router.include_router(oauth_router)

@@ -11,7 +11,7 @@ from balance_checker_bot.monzo_api.operations import (
     operations_router as monzo_operations_router,
 )
 from balance_checker_bot.dependencies.auth_dependencies import is_auth_bot
-from balance_checker_bot.dependencies.redis_connection import get_redis_client
+from balance_checker_bot.dependencies.redis_client import RedisClient
 from balance_checker_bot.config import get_settings
 
 
@@ -29,7 +29,7 @@ app.add_middleware(HTTPSRedirectMiddleware)
 logger = logging.getLogger(__name__)
 
 scopes = ["accounts"]  # Adjust the scopes according to your needs
-r = get_redis_client()
+r = RedisClient()
 
 
 @app.get("/ping")
