@@ -1,16 +1,18 @@
 import os
 import secrets
+from typing import Annotated
 
 import redis
 import requests
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Depends, Header
 from fastapi.responses import RedirectResponse
+from starlette import status
 from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from fastapi import HTTPException
 import logging
 import uvicorn
-from config import Settings
+from balance_checker_bot.config import Settings
 from functools import lru_cache
 from pathlib import Path
 
@@ -39,13 +41,27 @@ r = redis.Redis(
 )
 
 
-def block_bad_guy(secret):
-    if secret == settings.SECRET_DEV:
-        return
-    raise HTTPException(status_code=401, detail="Unauthorized")
+async def is_auth_bot(secret: str = Header(None)) -> bool:
+    # check env variable settings
+    if not secret or secret == "":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    # prevent timing attacks
+    if not secrets.compare_digest(
+        settings.SECRET_DEV.encode("utf-8"), secret.encode("utf-8")
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return True
 
 
-def auth1(redirect_url, client_id, client_secret):
+def auth1(redirect_url, client_id):
     state_token = secrets.token_urlsafe(64)
     user_visit_url = (
         f"https://auth.monzo.com?client_id={client_id}&redirect_uri={redirect_url}&response_type=code"
@@ -118,12 +134,8 @@ async def refresh_token(request: Request):
 
 
 @app.get("/")
-async def start_oauth(request: Request):
-    block_bad_guy(request.query_params.get("secret"))
-
-    auth_url, state = auth1(
-        settings.REDIRECT_URI, settings.CLIENT_ID, settings.CLIENT_SECRET
-    )
+async def start_oauth(request: Request, token: Annotated[str, Depends(is_auth_bot)]):
+    auth_url, state = auth1(settings.REDIRECT_URI, settings.CLIENT_ID)
 
     request.session["oauth_state"] = state
     # add state to redis
@@ -155,7 +167,7 @@ async def callback(request: Request):
 
 
 @app.get("/trade")
-async def trade(request: Request):
+async def trade(request: Request, token: Annotated[str, Depends(is_auth_bot)]):
     # get code and state from redis
     logger.info("Authentication - swapping authorization token for an access token")
     data = {
@@ -180,19 +192,15 @@ async def trade(request: Request):
 
 
 @app.get("/ping")
-async def ping(request: Request):
-    logger.debug(f"state {r.get("state")}")
-    logger.debug(f"code {r.get("code")}")
-    logger.debug(f"refresh_token {r.get("refresh_token")}")
-    refresh_status = request.query_params.get("refresh")
-    if refresh_status == "true":
-        return "Access token refreshed."
-    return "nothing pong"
+async def ping(
+    is_authenticated: Annotated[str, Depends(is_auth_bot)], refresh: bool | None = False
+):
+    authorised = True if is_authenticated else False
+    return {"ping": "pong", "authorised": authorised, "refreshed": refresh}
 
 
 @app.get("/whoami")
-async def whoami(request: Request):
-    block_bad_guy(request.query_params.get("secret"))
+async def whoami(request: Request, token: Annotated[str, Depends(is_auth_bot)]):
     await refresh_token()
     access_token = load_access_token()
     headers = {"Authorization": f"Bearer {access_token}"}
@@ -227,8 +235,7 @@ def load_access_token():
 
 
 @app.get("/accounts")
-async def get_accounts(request: Request):
-    block_bad_guy(request.query_params.get("secret"))
+async def get_accounts(request: Request, token: Annotated[str, Depends(is_auth_bot)]):
     await refresh_token(request)
     access_token = load_access_token()
     data = {}
@@ -264,7 +271,7 @@ async def get_accounts(request: Request):
 
 @app.get("/balance")
 async def get_balance(request: Request):
-    block_bad_guy(request.query_params.get("secret"))
+    is_auth_bot(request.query_params.get("secret"))
     await refresh_token(request)
     account_id = r.get("account_id")
     logger.debug(f"balance: account id: {account_id}")
@@ -293,12 +300,11 @@ async def get_balance(request: Request):
 
 if __name__ == "__main__":
     uvicorn.run(
-        app,
-        # "main:app",
+        "main:app",
         host="0.0.0.0",
         port=8000,
         log_config=f"{str(Path(__file__).parent)}/log_conf.yaml",
-        # reload=True,
+        reload=True,
         ssl_certfile="./ssl/cert.pem",
         ssl_keyfile="./ssl/key.pem",
         proxy_headers=True,

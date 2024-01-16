@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     REDIRECT_URI: str
     REDIS_PASSWORD: str
     REDIS_HOST: str
-    SECRET_DEV: str
+    SECRET_DEV: str = "secret-dev-please-change-in-env-file"
     SSL_CERTFILE: str = "ssl/cert.pem"
     SSL_KEYFILE: str = "ssl/key.pem"
     TELEGRAM_BOT_API_TOKEN: str
@@ -28,7 +28,3 @@ class Settings(BaseSettings):
     BALANCE_URL: str = "https://api.monzo.com/balance"
 
     model_config = SettingsConfigDict(env_file=Path(__file__).parent.parent / ".env")
-
-
-settings = Settings()
-print(settings.SSL_KEYFILE)
