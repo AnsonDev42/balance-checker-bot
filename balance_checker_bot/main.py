@@ -1,20 +1,21 @@
+import logging
 import os
 import secrets
+from functools import lru_cache
+from pathlib import Path
 from typing import Annotated
 
 import redis
 import requests
+import uvicorn
 from fastapi import FastAPI, Request, Depends, Header
+from fastapi import HTTPException
 from fastapi.responses import RedirectResponse
 from starlette import status
 from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
 from starlette.middleware.sessions import SessionMiddleware
-from fastapi import HTTPException
-import logging
-import uvicorn
+
 from balance_checker_bot.config import Settings
-from functools import lru_cache
-from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -270,8 +271,7 @@ async def get_accounts(request: Request, token: Annotated[str, Depends(is_auth_b
 
 
 @app.get("/balance")
-async def get_balance(request: Request):
-    is_auth_bot(request.query_params.get("secret"))
+async def get_balance(request: Request, is_auth: Annotated[str, Depends(is_auth_bot)]):
     await refresh_token(request)
     account_id = r.get("account_id")
     logger.debug(f"balance: account id: {account_id}")
