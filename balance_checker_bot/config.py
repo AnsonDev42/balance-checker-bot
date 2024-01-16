@@ -1,6 +1,7 @@
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pathlib import Path
+from functools import lru_cache
 
 
 class Settings(BaseSettings):
@@ -28,3 +29,8 @@ class Settings(BaseSettings):
     BALANCE_URL: str = "https://api.monzo.com/balance"
 
     model_config = SettingsConfigDict(env_file=Path(__file__).parent.parent / ".env")
+
+
+@lru_cache
+def get_settings():
+    return Settings()
