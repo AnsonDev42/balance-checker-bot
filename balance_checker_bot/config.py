@@ -1,20 +1,23 @@
+from functools import lru_cache
+from pathlib import Path
+
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pathlib import Path
-from functools import lru_cache
 
 
-class Settings(BaseSettings):
+class BCB_Settings(BaseSettings):
     CLIENT_ID: str
     CLIENT_SECRET: str
-    REDIRECT_URI: str
-    REDIS_PASSWORD: str
-    REDIS_HOST: str
-    SECRET_DEV: str = "secret-dev-please-change-in-env-file"
+    REDIRECT_URI: str = "https://localhost:1234/auth/callback"
+    REDIS_PASSWORD: str = (
+        "password"  # change in docker-compose.yml as well if you use docker
+    )
+    REDIS_HOST: str = "localhost"
+    SECRET_DEV: str = "replace-me-with-a-secret"
     SSL_CERTFILE: str = "ssl/cert.pem"
     SSL_KEYFILE: str = "ssl/key.pem"
-    TELEGRAM_BOT_API_TOKEN: str
-    BASE_URL: str
+    TELEGRAM_BOT_API_TOKEN: str = "test"
+    BASE_URL: str = "https://localhost:1234"  # Change this to your server's URL
 
     @field_validator("BASE_URL")
     def ensure_trailing_slash(cls, v):
@@ -28,9 +31,12 @@ class Settings(BaseSettings):
     ACCOUNTS_URL: str = "https://api.monzo.com/accounts"
     BALANCE_URL: str = "https://api.monzo.com/balance"
 
-    model_config = SettingsConfigDict(env_file=Path(__file__).parent.parent / ".env")
+    model_config = SettingsConfigDict()
 
 
 @lru_cache
 def get_settings():
-    return Settings()
+    return BCB_Settings(
+        _env_file=Path(__file__).parent.parent / ".env",
+        _env_file_encoding="utf-8",
+    )
