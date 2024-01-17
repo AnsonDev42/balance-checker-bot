@@ -6,14 +6,20 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class BCB_Settings(BaseSettings):
-    CLIENT_ID: str
-    CLIENT_SECRET: str
+    """
+    Settings for the Balance Checker Bot
+    This settings uses values from the .env file in the root directory if possible,
+    then falls back to the default values specified here.
+    """
+
+    CLIENT_ID: str = "replace-me-in-dotenv"
+    CLIENT_SECRET: str = "replace-me-in-dotenv"
     REDIRECT_URI: str = "https://localhost:1234/auth/callback"
     REDIS_PASSWORD: str = (
         "password"  # change in docker-compose.yml as well if you use docker
     )
     REDIS_HOST: str = "localhost"
-    SECRET_DEV: str = "replace-me-with-a-secret"
+    SECRET_DEV: str = "replace-me-in-dotenv"
     SSL_CERTFILE: str = "ssl/cert.pem"
     SSL_KEYFILE: str = "ssl/key.pem"
     TELEGRAM_BOT_API_TOKEN: str = "test"
