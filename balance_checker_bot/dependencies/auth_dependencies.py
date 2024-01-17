@@ -1,5 +1,5 @@
 from fastapi import Header, HTTPException, status
-from balance_checker_bot.config import Settings
+from balance_checker_bot.config import get_settings
 import secrets
 
 
@@ -10,7 +10,7 @@ async def is_auth_bot(secret: str = Header(None)) -> bool:
     :return: True if the request is sent by your bot or raise error if not
     """
     # check env variable settings
-    settings = Settings()
+    settings = get_settings()
     if not secret or secret == "":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
