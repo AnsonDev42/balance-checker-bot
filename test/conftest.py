@@ -1,6 +1,8 @@
-import pytest
-import fakeredis
 from unittest.mock import patch
+
+import fakeredis
+import pytest
+
 from balance_checker_bot.config import Settings
 
 
@@ -10,6 +12,7 @@ def mock_settings():
     test_settings = Settings(
         REDIS_HOST="localhost",
         REDIS_PASSWORD="password",
+        SECRET_DEV="test-secret",
     )
 
     with patch("balance_checker_bot.config.get_settings", return_value=test_settings):
