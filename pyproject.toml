@@ -51,7 +51,7 @@ force-single-line = true
 legacy_tox_ini = """
 [tox]
 env_list =
-    py{38,39,310,311,312}
+    py{312}
 isolated_build = true
 
 [testenv]
