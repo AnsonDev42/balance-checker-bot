@@ -45,3 +45,21 @@ build-backend = "poetry.core.masonry.api"
 combine-as-imports = true
 case-sensitive = true
 force-single-line = true
+
+[tool.tox]
+legacy_tox_ini = """
+[tox]
+env_list =
+    py{38,39,310,311,312}
+isolated_build = true
+
+[testenv]
+description = Run pytest
+deps = pytest>=6
+commands = pytest {tty:--color=yes} {posargs}
+
+[gh]
+python =
+    3.12 = py312
+    3.11 = py311, type
+"""
