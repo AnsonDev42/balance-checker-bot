@@ -1,13 +1,16 @@
 import logging
+import secrets
+import urllib.parse
+from enum import Enum, auto
+from typing import Annotated
+
 import requests
+from fastapi import APIRouter, Request, Depends, HTTPException
+from fastapi.responses import RedirectResponse
+
 from balance_checker_bot.config import get_settings
 from balance_checker_bot.dependencies.auth_dependencies import is_auth_bot
 from balance_checker_bot.dependencies.redis_client import RedisClient
-from fastapi import APIRouter, Request, Depends, HTTPException
-from fastapi.responses import RedirectResponse
-from typing import Annotated
-from enum import Enum, auto
-import secrets
 
 oauth_router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -137,15 +140,16 @@ async def perform_token_refresh() -> TokenRefreshResult:
 
 def auth1(redirect_url, client_id):
     state_token = secrets.token_urlsafe(128)
-    user_visit_url = (
-        f"https://auth.monzo.com?client_id={client_id}&redirect_uri={redirect_url}&response_type=code"
-        f"&state={state_token}"
-    )
+    params = {
+        "client_id": client_id,
+        "redirect_url": redirect_url,
+        "response_type": "code",
+        "state": state_token,
+    }
+    url = "https://auth.monzo.com/?"
+    user_visit_url = url + urllib.parse.urlencode(params)
     logger.info("Authentication - step 1: send user to Monzo: " + user_visit_url)
     # http://127.0.0.1/monzo?code=somecode&state=somestate
     # the code would be used in step 2 as part of the callback url from monzo to your server
     # the state would be used to verify that the request is coming from monzo and not some other source
-    return (
-        user_visit_url,  #
-        state_token,
-    )
+    return user_visit_url, state_token
