@@ -25,3 +25,19 @@ def test_redis_client_functionality(mock_redis, mock_settings):
     r.set("key", "value")
 
     assert r.get("key") == "value", r.get("key")
+
+
+def test_redis_client_contains_fake_settings(
+    mock_redis_client,
+):
+    """
+    Test the Redis client contains fake settings.
+    :param mock_redis:
+    :param mock_settings:
+    :return:
+    """
+    r = RedisClient()
+    secret_value = r.get("SECRET_DEV")  # Use the connection attribute
+
+    # Test specific Redis operations here
+    assert secret_value == "test-secret", r.get("SECRET_DEV")

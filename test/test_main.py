@@ -1,23 +1,10 @@
-import redis
 from fastapi.testclient import TestClient
 
 from balance_checker_bot.main import app
 from balance_checker_bot.config import get_settings
-from balance_checker_bot.dependencies.redis_client import RedisClient
 
 settings = get_settings()
 client = TestClient(app)
-
-
-def test_redis_up():
-    r = RedisClient()
-    assert isinstance(r, redis.Redis)
-
-    try:
-        r.ping()
-    except Exception as e:
-        print(e)
-        assert False, "Failed to connect to redis"
 
 
 def test_ping_authorised():

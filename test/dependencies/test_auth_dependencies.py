@@ -4,7 +4,7 @@ from balance_checker_bot.dependencies.auth_dependencies import is_auth_bot
 
 
 @pytest.mark.asyncio
-async def test_is_auth_bot():
+async def test_is_auth_bot(mock_redis, mock_settings):
     """
     Test is_auth_bot function.
     :return:
