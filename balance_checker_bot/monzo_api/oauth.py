@@ -6,7 +6,6 @@ from typing import Annotated
 
 import requests
 from fastapi import APIRouter, Request, Depends, HTTPException
-from fastapi.responses import RedirectResponse
 
 from balance_checker_bot.config import get_settings
 from balance_checker_bot.dependencies.auth_dependencies import is_auth_bot
@@ -56,25 +55,23 @@ async def callback(request: Request):
     if state is None:
         raise HTTPException(status_code=401, detail="state not available")
 
-    try:
-        r.set("code", code)
-        r.set("state", state)
-    except Exception as e:
-        logger.critical(e)
-    logger.info("Authorization successful. Access token stored.")
-    return RedirectResponse("/trade")
+    if await trade_tokens(code, state):
+        return {"success": True}
+    else:
+        raise HTTPException(status_code=400, detail="Error exchanging token")
 
 
-@oauth_router.get("/trade")
-async def trade(request: Request, token: Annotated[str, Depends(is_auth_bot)]):
-    # get code and state from redis
-    logger.info("Authentication - swapping authorization token for an access token")
+async def trade_tokens(code: str, state: str) -> bool:
+    """
+    trade the code for an access token
+    :return: True if successful, False otherwise
+    """
     data = {
         "grant_type": "authorization_code",
         "client_id": settings.CLIENT_ID,
         "client_secret": settings.CLIENT_SECRET,
         "redirect_uri": settings.REDIRECT_URI,
-        "code": r.get("code"),
+        "code": code,
     }
     try:
         response = requests.post(settings.MONZO_TOKEN_URL, data=data, headers={})
@@ -85,9 +82,10 @@ async def trade(request: Request, token: Annotated[str, Depends(is_auth_bot)]):
         r.set("json", tokens)
         r.set("refresh_token", response.json()["refresh_token"])
         r.set("access_token", response.json()["access_token"])
-        return RedirectResponse(oauth_router.url_path_for("ping"))
-    except requests.RequestException as e:
-        raise HTTPException(status_code=400, detail="Error exchanging token") from e
+        return True
+    except requests.RequestException:
+        logger.info("Authentication - token exchange failed")
+        return False
 
 
 @oauth_router.get("/refresh")
