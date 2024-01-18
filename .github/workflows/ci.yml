@@ -2,9 +2,11 @@ on:
   push:
     branches:
       - server-tests
+      - main
   pull_request:
     branches:
       - server-tests
+      - main
 
 name: Run tests
 concurrency:
