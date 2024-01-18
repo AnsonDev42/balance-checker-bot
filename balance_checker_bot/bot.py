@@ -207,7 +207,9 @@ async def login_monzo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             text="You are not the admin, you can't reset the admin",
         )
         return
-    response = requests.get(settings.BASE_URL, headers={"secret": settings.SECRET_DEV})
+    response = requests.get(
+        "settings.BASE_URL/start", headers={"secret": settings.SECRET_DEV}
+    )
     try:
         login_url = response.json()["auth_url"]
         await context.bot.send_message(
