@@ -1,6 +1,5 @@
 import datetime
 import logging
-from functools import lru_cache
 
 import pydantic
 import redis
@@ -15,14 +14,8 @@ from telegram.ext import (
     ContextTypes,
 )
 
-from balance_checker_bot.config import Settings
+from balance_checker_bot.config import get_settings
 from validator import TimeModel
-
-
-@lru_cache
-def get_settings():
-    return Settings()
-
 
 settings = get_settings()
 
