@@ -278,7 +278,7 @@ if __name__ == "__main__":
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("connect_monzo", login_monzo))
     application.add_handler(CommandHandler("get_monzo_account", get_monzo_account))
-    application.add_handler(CommandHandler("reset", reset_owner))
+    application.add_handler(CommandHandler("reset_owner", reset_owner))
     application.add_handler(CommandHandler("get_balance", get_balance))
     application.add_handler(CommandHandler("set", set_timer))
     application.add_handler(CommandHandler("unset", unset))
