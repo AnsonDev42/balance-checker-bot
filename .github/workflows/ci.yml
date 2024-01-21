@@ -1,13 +1,10 @@
 on:
   push:
     branches:
-      - server-tests
-      - main
+      -- all
   pull_request:
     branches:
-      - server-tests
-      - main
-
+      -- all
 name: Run tests
 concurrency:
   group: check-${{ github.ref }}
