@@ -2,7 +2,6 @@ import datetime
 import logging
 
 import pydantic
-import redis
 import requests
 from requests import HTTPError
 from telegram import Update
@@ -15,6 +14,7 @@ from telegram.ext import (
 )
 
 from balance_checker_bot.config import get_settings
+from balance_checker_bot.dependencies.redis_client import RedisClient
 from validator import TimeModel
 
 settings = get_settings()
@@ -22,12 +22,7 @@ settings = get_settings()
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
 )
-r = redis.Redis(
-    host=settings.REDIS_HOST,
-    port=6379,
-    decode_responses=True,
-    password=settings.REDIS_PASSWORD,
-)
+r = RedisClient()
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -209,7 +204,10 @@ async def login_monzo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             chat_id=update.effective_chat.id,
             text=f"Please login to monzo, you will be redirected to monzo login page: {login_url}",
         )
-        text = "Successfully authorized! \nTrying to get your monzo account ID... \n      If failed you can use /get_monzo_account to retry!"
+        text = (
+            "Successfully authorized! \nTrying to get your monzo account ID... \n      If failed you can use "
+            "/get_monzo_account to retry!"
+        )
     except KeyError:
         text = "failed to get auth url, please check if the server is running!"
     finally:
