@@ -196,7 +196,7 @@ async def login_monzo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
     response = requests.get(
-        "settings.BASE_URL/start", headers={"secret": settings.SECRET_DEV}
+        f"{settings.BASE_URL}/start", headers={"secret": settings.SECRET_DEV}
     )
     try:
         login_url = response.json()["auth_url"]
@@ -204,10 +204,7 @@ async def login_monzo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             chat_id=update.effective_chat.id,
             text=f"Please login to monzo, you will be redirected to monzo login page: {login_url}",
         )
-        text = (
-            "Successfully authorized! \nTrying to get your monzo account ID... \n      If failed you can use "
-            "/get_monzo_account to retry!"
-        )
+        text = "If you complete the authentication on Monzo's side, click /get_monzo_account to verify!"
     except KeyError:
         text = "failed to get auth url, please check if the server is running!"
     finally:
