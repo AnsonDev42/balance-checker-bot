@@ -1,6 +1,6 @@
 import logging
 import secrets
-import urllib.parse
+import urllib
 from enum import Enum, auto
 from typing import Annotated
 
@@ -126,8 +126,8 @@ async def perform_token_refresh() -> TokenRefreshResult:
         logger.debug(str(response.json()))
         response.raise_for_status()
         if "refresh_token" in response.json() and "access_token" in response.json():
-            r_token = response.json["refresh_token"]
-            access_token = response.json["access_token"]
+            r_token = response.json()["refresh_token"]
+            access_token = response.json()["access_token"]
             r.set("refresh_token", r_token)
             r.set("access_token", access_token)
         logger.info("Access token and Refresh token both refreshed.")
@@ -141,15 +141,15 @@ def auth1(redirect_url: str, client_id: str):
         raise ValueError("redirect_url is required")
     if not client_id or client_id == "":
         raise ValueError("client_id is required")
-    state_token = secrets.token_urlsafe(128)
+    state_token = secrets.token_urlsafe(64)
     params = {
         "client_id": client_id,
         "redirect_uri": redirect_url,
         "response_type": "code",
         "state": state_token,
     }
-    url = "https://auth.monzo.com/?"
-    user_visit_url = url + urllib.parse.urlencode(params)
+    base_url = "https://auth.monzo.com/"
+    user_visit_url = f"{base_url}?{urllib.parse.urlencode(params)}"
     logger.info("Authentication - step 1: redirect url: " + redirect_url)
     logger.info("Authentication - step 1: send user to Monzo: " + user_visit_url)
     # http://127.0.0.1/monzo?code=somecode&state=somestate
