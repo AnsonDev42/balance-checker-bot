@@ -212,7 +212,7 @@ async def login_monzo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             chat_id=update.effective_chat.id,
             text=text,
         )
-    await get_monzo_account(update, context)
+    # await get_monzo_account(update, context)
 
 
 async def remove_all_jobs_from_db(update: Update, context: ContextTypes.DEFAULT_TYPE):
