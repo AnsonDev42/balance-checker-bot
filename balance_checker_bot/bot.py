@@ -92,7 +92,8 @@ async def set_timer(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         )
         return
     try:
-        # args[0] should contain the time for the timer in seconds
+        if len(context.args) == 0:
+            raise pydantic.ValidationError("No time provided")
         user_input_time = context.args[0]
         # show check time in the log
         logging.info(f"check_user_input_time: -{user_input_time}-")
