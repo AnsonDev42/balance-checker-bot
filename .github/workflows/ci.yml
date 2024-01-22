@@ -1,10 +1,10 @@
 on:
   push:
     branches:
-      -- all
+      - "**"
   pull_request:
     branches:
-      -- all
+      - "**"
 name: Run tests
 concurrency:
   group: check-${{ github.ref }}

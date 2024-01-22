@@ -1,6 +1,5 @@
 from fastapi.testclient import TestClient
 
-from balance_checker_bot.dependencies.redis_client import RedisClient
 from balance_checker_bot.main import app
 from test import conftest
 
@@ -28,7 +27,7 @@ def test_redis_client_contains_fake_settings(
     :param mock_settings:
     :return:
     """
-    r = RedisClient()
+    r = mock_redis_client
     secret_value = r.get("SECRET_DEV")  # Use the connection attribute
 
     # Test specific Redis operations here

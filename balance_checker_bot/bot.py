@@ -2,7 +2,6 @@ import datetime
 import logging
 
 import pydantic
-import redis
 import requests
 from requests import HTTPError
 from telegram import Update
@@ -15,6 +14,7 @@ from telegram.ext import (
 )
 
 from balance_checker_bot.config import get_settings
+from balance_checker_bot.dependencies.redis_client import RedisClient
 from validator import TimeModel
 
 settings = get_settings()
@@ -22,12 +22,7 @@ settings = get_settings()
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
 )
-r = redis.Redis(
-    host=settings.REDIS_HOST,
-    port=6379,
-    decode_responses=True,
-    password=settings.REDIS_PASSWORD,
-)
+r = RedisClient()
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -97,7 +92,8 @@ async def set_timer(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         )
         return
     try:
-        # args[0] should contain the time for the timer in seconds
+        if len(context.args) == 0:
+            raise pydantic.ValidationError("No time provided")
         user_input_time = context.args[0]
         # show check time in the log
         logging.info(f"check_user_input_time: -{user_input_time}-")
@@ -114,11 +110,16 @@ async def set_timer(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
     t = datetime.time(hour=checked_time.hour, minute=checked_time.minute)
     job_removed = remove_job_if_exists(str(chat_id), context)
-    context.job_queue.run_daily(
-        get_balance_callback, time=t, chat_id=chat_id, name=str(chat_id), data=context
+    context.job_queue.run_monthly(
+        get_balance_callback,
+        when=t,
+        day=checked_time.day,
+        chat_id=chat_id,
+        name=str(chat_id),
+        data=context,
     )
 
-    text = f"Your reminder successfully set to everyday {t.strftime('%H:%M')}."
+    text = f"Your reminder successfully set to monthly at day {checked_time.day} at {t.strftime('%H:%M')}."
     if job_removed:
         text += " Old one was removed."
     await update.effective_message.reply_text(text)
@@ -201,7 +202,7 @@ async def login_monzo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
     response = requests.get(
-        "settings.BASE_URL/start", headers={"secret": settings.SECRET_DEV}
+        f"{settings.BASE_URL}/start", headers={"secret": settings.SECRET_DEV}
     )
     try:
         login_url = response.json()["auth_url"]
@@ -209,7 +210,7 @@ async def login_monzo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             chat_id=update.effective_chat.id,
             text=f"Please login to monzo, you will be redirected to monzo login page: {login_url}",
         )
-        text = "Successfully authorized! \nTrying to get your monzo account ID... \n      If failed you can use /get_monzo_account to retry!"
+        text = "If you complete the authentication on Monzo's side, click /get_monzo_account to verify!"
     except KeyError:
         text = "failed to get auth url, please check if the server is running!"
     finally:
@@ -217,7 +218,7 @@ async def login_monzo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             chat_id=update.effective_chat.id,
             text=text,
         )
-    await get_monzo_account(update, context)
+    # await get_monzo_account(update, context)
 
 
 async def remove_all_jobs_from_db(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -278,7 +279,7 @@ if __name__ == "__main__":
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("connect_monzo", login_monzo))
     application.add_handler(CommandHandler("get_monzo_account", get_monzo_account))
-    application.add_handler(CommandHandler("reset", reset_owner))
+    application.add_handler(CommandHandler("reset_owner", reset_owner))
     application.add_handler(CommandHandler("get_balance", get_balance))
     application.add_handler(CommandHandler("set", set_timer))
     application.add_handler(CommandHandler("unset", unset))

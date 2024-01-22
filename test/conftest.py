@@ -74,7 +74,7 @@ def mock_redis(mock_settings):
 
 
 @pytest.fixture(autouse=True)
-def mock_redis_client(mock_settings, mock_redis):
+def mock_redis_client(mock_settings, mock_redis, monkeypatch):
     # Patch the __new__ method of RedisClient to return the fake Redis connection
     original_new = RedisClient.__new__
 
@@ -90,4 +90,4 @@ def mock_redis_client(mock_settings, mock_redis):
         "balance_checker_bot.dependencies.redis_client.RedisClient.__new__",
         new=mock_new,
     ):
-        yield
+        yield mock_redis
