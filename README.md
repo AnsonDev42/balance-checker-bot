@@ -9,6 +9,9 @@ Balance Checker is a simple yet powerful tool designed to help you keep track of
 Contributor: [AnsonDev42](https://github.com/AnsonDev42) \
 Reviewer and Prospective Contributor: [hanwe98](https://github.com/hanwe98)
 
+## DEMO
+
+![Demo](demo.jpg)
 ## Instructions
 
 ### Setting Up Your Environment Variables
@@ -34,9 +37,16 @@ For the bot to function properly, you need to set several environment variables.
 2. Access `YOUR_DOMAIN_NAME/ping` to verify server functionality.
 
 ## Using the Telegram Bot
+
+**below steps refer to the numbers in demo image above**
 1. `/start` to initiate the bot and designate yourself as the admin.
 2. `/connect_to_monzo` to link your Monzo account.
+   - click the link to authorize the bot to access your Monzo account (you'll need to log in to Monzo via Email). After
+     authorization by email, you'll be redirected to the callback URL and you can safely close the page.
+   - authorize the bot in Monzo app
 3. `/get_balance` to receive your current balance.
+4. `/set DDHHMM` to receive a notification every month at day (DD), hour:minite (HHMM) before your direct debit payment
+   is due. For example, `/set 151000` will send you a notification at 3pm on the 15th of every month.
 
 ## Contributions
 ### Environment Setup with Poetry
