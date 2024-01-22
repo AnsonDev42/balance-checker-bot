@@ -110,11 +110,16 @@ async def set_timer(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
     t = datetime.time(hour=checked_time.hour, minute=checked_time.minute)
     job_removed = remove_job_if_exists(str(chat_id), context)
-    context.job_queue.run_daily(
-        get_balance_callback, time=t, chat_id=chat_id, name=str(chat_id), data=context
+    context.job_queue.run_monthly(
+        get_balance_callback,
+        when=t,
+        day=checked_time.day,
+        chat_id=chat_id,
+        name=str(chat_id),
+        data=context,
     )
 
-    text = f"Your reminder successfully set to everyday {t.strftime('%H:%M')}."
+    text = f"Your reminder successfully set to monthly at day {checked_time.day} at {t.strftime('%H:%M')}."
     if job_removed:
         text += " Old one was removed."
     await update.effective_message.reply_text(text)
