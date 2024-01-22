@@ -16,14 +16,15 @@ def test_redis_client_singleton(mock_redis, mock_settings):
 
 #
 #
-def test_redis_client_functionality(mock_redis, mock_settings):
+def test_redis_client_functionality(mock_redis, mock_settings, mock_redis_client):
     """
     Test the Redis client functionality.
     :param mock_redis:
     :param mock_settings:
     :return:
     """
-    r = RedisClient()
+    r = mock_redis_client
+
     # Test specific Redis operations here
     r.set("key", "value")
 
@@ -39,7 +40,7 @@ def test_redis_client_contains_fake_settings(
     :param mock_settings:
     :return:
     """
-    r = RedisClient()
+    r = mock_redis_client
     secret_value = r.get("SECRET_DEV")  # Use the connection attribute
 
     # Test specific Redis operations here

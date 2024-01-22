@@ -19,6 +19,6 @@ class RedisClient:
         return cls._instance.connection
 
     @staticmethod
-    def set_mock_connection(mock_redis):
-        RedisClient._instance.connection = mock_redis
+    def set_mock_connection(mock_redis_client):
+        RedisClient._instance.connection = mock_redis_client
         return RedisClient
